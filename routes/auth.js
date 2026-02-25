@@ -132,9 +132,12 @@ router.post('/login', [
     .withMessage('Password is required')
 ], async (req, res) => {
   try {
+    console.log('🔍 Login request received:', req.body);
+    
     // Check for validation errors
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      console.log('❌ Validation errors:', errors.array());
       return res.status(400).json({
         success: false,
         message: 'Validation failed',
@@ -143,6 +146,8 @@ router.post('/login', [
     }
 
     const { email, password } = req.body;
+    console.log('📧 Email:', email);
+    console.log('🔑 Password length:', password.length);
 
     // Use file-based database or in-memory storage
     let users = [];
@@ -155,10 +160,14 @@ router.post('/login', [
       users = global.users;
     }
 
+    console.log('👥 Total users in database:', users.length);
+
     // Find user
     const user = users.find(u => u.email === email);
+    console.log('🔍 Found user:', user ? user.email : 'Not found');
 
     if (!user) {
+      console.log('❌ User not found');
       return res.status(401).json({
         success: false,
         message: 'Invalid credentials'
@@ -167,6 +176,7 @@ router.post('/login', [
 
     // Check if user is active
     if (!user.isActive) {
+      console.log('❌ User is not active');
       return res.status(401).json({
         success: false,
         message: 'Account is deactivated. Please contact administrator.'
@@ -174,12 +184,20 @@ router.post('/login', [
     }
 
     // Check password (demo mode - simple comparison)
+    console.log('🔐 Checking password...');
+    console.log('📝 Stored password:', user.password);
+    console.log('📝 Provided password:', password);
+    console.log('✅ Password match:', user.password === password);
+    
     if (user.password !== password) {
+      console.log('❌ Password mismatch');
       return res.status(401).json({
         success: false,
         message: 'Invalid credentials'
       });
     }
+
+    console.log('✅ Authentication successful');
 
     // Update last login
     user.lastLogin = new Date();
@@ -191,7 +209,9 @@ router.post('/login', [
       { expiresIn: process.env.JWT_EXPIRE || '7d' }
     );
 
-    res.json({
+    console.log('🎫 Token generated successfully');
+
+    const responseData = {
       success: true,
       message: 'Login successful',
       data: {
@@ -202,10 +222,13 @@ router.post('/login', [
           email: user.email,
           role: user.role,
           company: user.company,
-          lastLogin: user.lastLogin
+          createdAt: user.createdAt
         }
       }
-    });
+    };
+
+    console.log('📤 Sending response:', responseData);
+    res.json(responseData);
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({
