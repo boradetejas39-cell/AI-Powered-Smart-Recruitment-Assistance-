@@ -1,0 +1,41 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "server.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "client/build"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/server.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/client/build/$1"
+    }
+  ],
+  "env": {
+    "NODE_ENV": "production",
+    "PORT": "3000",
+    "MONGODB_URI": "mongodb+srv://ai_smart_recruiter:recruiter123@recruiter.vsvy6cx.mongodb.net/?appName=Recruiter",
+    "MONGODB_TEST_URI": "mongodb://localhost:27017/ai-recruiter-test",
+    "JWT_SECRET": "your-super-secret-jwt-key-change-this-in-production-min-32-characters-secure",
+    "JWT_EXPIRE": "7d",
+    "MAX_FILE_SIZE": "10485760",
+    "UPLOAD_PATH": "./uploads"
+  },
+  "functions": {
+    "server.js": {
+      "maxDuration": 30
+    }
+  }
+}
