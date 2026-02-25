@@ -1,0 +1,14 @@
+node_modules
+.env
+.env.local
+.env.development
+.git
+uploads
+file-db
+*.log
+*.test
+*.debug
+test-*.js
+debug-*.js
+client/node_modules
+client/build
