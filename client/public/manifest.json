@@ -1,0 +1,20 @@
+{
+  "short_name": "AI Recruiter",
+  "name": "AI Recruiter - Smart Hiring Platform",
+  "description": "An intelligent recruitment platform that matches candidates with jobs using AI-powered resume parsing and matching algorithms",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#4F46E5",
+  "theme_color": "#4F46E5",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    }
+  ],
+  "categories": ["business", "productivity"],
+  "scope": "/",
+  "lang": "en"
+}

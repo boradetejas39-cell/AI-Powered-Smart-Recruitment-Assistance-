@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Registration</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 500px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        input,
+        select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        .error {
+            color: red;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+
+        .success {
+            color: green;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <h2>Test Registration Form</h2>
+    <form id="registrationForm">
+        <div class="form-group">
+            <label for="name">Full Name:</label>
+            <input type="text" id="name" name="name" required>
+            <div class="error" id="nameError"></div>
+        </div>
+
+        <div class="form-group">
+            <label for="email">Email:</label>
+            <input type="email" id="email" name="email" required>
+            <div class="error" id="emailError"></div>
+        </div>
+
+        <div class="form-group">
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password" required>
+            <div class="error" id="passwordError"></div>
+        </div>
+
+        <div class="form-group">
+            <label for="confirmPassword">Confirm Password:</label>
+            <input type="password" id="confirmPassword" name="confirmPassword" required>
+            <div class="error" id="confirmPasswordError"></div>
+        </div>
+
+        <div class="form-group">
+            <label for="role">Role:</label>
+            <select id="role" name="role" required>
+                <option value="hr">HR Professional</option>
+                <option value="admin">Administrator</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="company">Company:</label>
+            <input type="text" id="company" name="company" required>
+            <div class="error" id="companyError"></div>
+        </div>
+
+        <div class="form-group">
+            <input type="checkbox" id="agreeTerms" name="agreeTerms" required>
+            <label for="agreeTerms">I agree to the Terms of Service</label>
+            <div class="error" id="agreeTermsError"></div>
+        </div>
+
+        <button type="submit">Register</button>
+
+        <div class="success" id="successMessage"></div>
+        <div class="error" id="generalError"></div>
+    </form>
+
+    <script>
+        document.getElementById('registrationForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            // Clear previous errors
+            document.querySelectorAll('.error').forEach(el => el.textContent = '');
+            document.getElementById('successMessage').textContent = '';
+            document.getElementById('generalError').textContent = '';
+
+            // Get form data
+            const formData = {
+                name: document.getElementById('name').value.trim(),
+                email: document.getElementById('email').value.trim(),
+                password: document.getElementById('password').value,
+                confirmPassword: document.getElementById('confirmPassword').value,
+                role: document.getElementById('role').value,
+                company: document.getElementById('company').value.trim(),
+                agreeTerms: document.getElementById('agreeTerms').checked
+            };
+
+            console.log('🔍 Form data:', formData);
+
+            // Validate
+            let errors = {};
+
+            if (!formData.name) {
+                errors.name = 'Full name is required';
+            }
+
+            if (!formData.email) {
+                errors.email = 'Email is required';
+            } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+                errors.email = 'Email is invalid';
+            }
+
+            if (!formData.password) {
+                errors.password = 'Password is required';
+            } else if (formData.password.length < 6) {
+                errors.password = 'Password must be at least 6 characters long';
+            }
+
+            if (!formData.confirmPassword) {
+                errors.confirmPassword = 'Please confirm your password';
+            } else if (formData.password !== formData.confirmPassword) {
+                errors.confirmPassword = 'Passwords do not match';
+            }
+
+            if (formData.role === 'hr' && !formData.company) {
+                errors.company = 'Company name is required for HR role';
+            }
+
+            if (!formData.agreeTerms) {
+                errors.agreeTerms = 'You must agree to the Terms of Service';
+            }
+
+            // Display errors
+            Object.keys(errors).forEach(key => {
+                const errorElement = document.getElementById(key + 'Error');
+                if (errorElement) {
+                    errorElement.textContent = errors[key];
+                }
+            });
+
+            if (Object.keys(errors).length > 0) {
+                console.log('❌ Validation errors:', errors);
+                return;
+            }
+
+            console.log('✅ Validation passed');
+
+            try {
+                // Remove confirmPassword and agreeTerms from API data
+                const { confirmPassword, agreeTerms, ...apiData } = formData;
+                console.log('📤 Sending to API:', apiData);
+
+                const response = await fetch('http://localhost:5001/api/auth/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(apiData)
+                });
+
+                const result = await response.json();
+                console.log('📥 API Response:', result);
+
+                if (response.ok && result.success) {
+                    document.getElementById('successMessage').textContent =
+                        'Registration successful! You can now login.';
+                    document.getElementById('registrationForm').reset();
+                } else {
+                    document.getElementById('generalError').textContent =
+                        result.message || 'Registration failed. Please try again.';
+                }
+
+            } catch (error) {
+                console.error('❌ Registration error:', error);
+                document.getElementById('generalError').textContent =
+                    'Network error. Please check your connection and try again.';
+            }
+        });
+    </script>
+</body>
+
+</html>

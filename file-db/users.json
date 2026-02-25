@@ -1,0 +1,178 @@
+[
+  {
+    "_id": "1771005660446",
+    "name": "DB Test User",
+    "email": "dbtest@example.com",
+    "password": "password123",
+    "role": "hr",
+    "company": "Database Test Company",
+    "createdAt": "2026-02-13T18:01:00.445Z",
+    "lastLogin": "2026-02-13T18:01:00.445Z",
+    "isActive": true
+  },
+  {
+    "_id": "1771005827514",
+    "name": "Test User",
+    "email": "test123@example.com",
+    "password": "password123",
+    "role": "hr",
+    "company": "Test Company",
+    "createdAt": "2026-02-13T18:03:47.513Z",
+    "lastLogin": "2026-02-13T18:03:47.513Z",
+    "isActive": true
+  },
+  {
+    "_id": "1771005860981",
+    "name": "Debug User",
+    "email": "debug@example.com",
+    "password": "password123",
+    "role": "hr",
+    "company": "Debug Company",
+    "createdAt": "2026-02-13T18:04:20.979Z",
+    "lastLogin": "2026-02-13T18:04:20.979Z",
+    "isActive": true
+  },
+  {
+    "_id": "1771005861028",
+    "name": "Debug User 2",
+    "email": "debug2@example.com",
+    "password": "password123",
+    "role": "hr",
+    "company": "",
+    "createdAt": "2026-02-13T18:04:21.026Z",
+    "lastLogin": "2026-02-13T18:04:21.026Z",
+    "isActive": true
+  },
+  {
+    "_id": "1771005861056",
+    "name": "Admin User",
+    "email": "admin@example.com",
+    "password": "password123",
+    "role": "admin",
+    "company": "",
+    "createdAt": "2026-02-13T18:04:21.054Z",
+    "lastLogin": "2026-02-13T18:04:21.054Z",
+    "isActive": true
+  },
+  {
+    "_id": "1771006407538",
+    "name": "DB Test User 1771006407311",
+    "email": "dbtest1771006407312@example.com",
+    "password": "password123",
+    "role": "hr",
+    "company": "Database Test Company",
+    "createdAt": "2026-02-13T18:13:27.538Z",
+    "lastLogin": "2026-02-13T18:13:27.538Z",
+    "isActive": true
+  },
+  {
+    "_id": "1771006407639",
+    "name": "Persistence Test",
+    "email": "persist1771006407622@example.com",
+    "password": "password123",
+    "role": "admin",
+    "company": "",
+    "createdAt": "2026-02-13T18:13:27.637Z",
+    "lastLogin": "2026-02-13T18:13:27.637Z",
+    "isActive": true
+  },
+  {
+    "_id": "1771006539635",
+    "name": "Test User",
+    "email": "testfail@example.com",
+    "password": "password123",
+    "role": "hr",
+    "company": "Test Company",
+    "createdAt": "2026-02-13T18:15:39.634Z",
+    "lastLogin": "2026-02-13T18:15:39.634Z",
+    "isActive": true
+  },
+  {
+    "_id": "1771006561144",
+    "name": "Frontend Test User",
+    "email": "frontend@example.com",
+    "password": "password123",
+    "role": "hr",
+    "company": "Frontend Test Company",
+    "createdAt": "2026-02-13T18:16:01.143Z",
+    "lastLogin": "2026-02-13T18:16:01.143Z",
+    "isActive": true
+  },
+  {
+    "_id": "1771006561266",
+    "name": "Valid User",
+    "email": "valid@example.com",
+    "password": "password123",
+    "role": "hr",
+    "company": "Valid Company",
+    "createdAt": "2026-02-13T18:16:01.265Z",
+    "lastLogin": "2026-02-13T18:16:01.265Z",
+    "isActive": true
+  },
+  {
+    "_id": "1771007218614",
+    "name": "Tejas Munjabhau Borade",
+    "email": "boradetejas39@gmail.com",
+    "password": "123654789",
+    "role": "hr",
+    "company": "Rbin pvt.ltd",
+    "createdAt": "2026-02-13T18:26:58.613Z",
+    "lastLogin": "2026-02-13T18:26:58.613Z",
+    "isActive": true
+  },
+  {
+    "_id": "1771010038071",
+    "name": "Quick Test User",
+    "email": "quicktest@example.com",
+    "password": "password123",
+    "role": "hr",
+    "company": "Quick Test Company",
+    "createdAt": "2026-02-13T19:13:58.071Z",
+    "lastLogin": "2026-02-13T19:13:58.071Z",
+    "isActive": true
+  },
+  {
+    "_id": "1771010145696",
+    "name": "Gaurav raskar",
+    "email": "gaurav12@gmail.com",
+    "password": "Gaurav@123",
+    "role": "admin",
+    "company": "",
+    "createdAt": "2026-02-13T19:15:45.695Z",
+    "lastLogin": "2026-02-13T19:15:45.695Z",
+    "isActive": true
+  },
+  {
+    "_id": "1771696544545",
+    "name": "James Bond",
+    "email": "jamesb@gmail.com",
+    "password": "123654789",
+    "role": "hr",
+    "company": "jjjj",
+    "createdAt": "2026-02-21T17:55:44.546Z",
+    "lastLogin": "2026-02-21T17:55:44.546Z",
+    "isActive": true
+  },
+  {
+    "_id": "1771697774783",
+    "name": "RBAC Test HR",
+    "email": "rbachr@demo.com",
+    "password": "Test1234",
+    "role": "hr",
+    "company": "",
+    "createdAt": "2026-02-21T18:16:14.784Z",
+    "lastLogin": "2026-02-21T18:16:14.784Z",
+    "isActive": true
+  },
+  {
+    "_id": "1771697828288",
+    "name": "RBAC Test HR",
+    "email": "rbachr_v2@demo.com",
+    "password": "Test1234",
+    "role": "hr",
+    "company": "",
+    "createdAt": "2026-02-21T18:17:08.288Z",
+    "lastLogin": "2026-02-21T18:17:08.288Z",
+    "isActive": true
+  }
+]
