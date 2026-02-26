@@ -2,14 +2,11 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import {
-  UserIcon,
   BriefcaseIcon,
   DocumentTextIcon,
-  CogIcon,
-  ArrowRightIcon
+  CogIcon
 } from '@heroicons/react/24/outline';
-import { Card, CardHeader, CardBody } from '../../components/UI/Card';
-import { Button } from '../../components/UI/Button';
+import { Card, CardBody } from '../../components/UI/Card';
 
 const Profile = () => {
   const { user } = useAuth();

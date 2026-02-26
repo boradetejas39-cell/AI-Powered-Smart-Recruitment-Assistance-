@@ -7,10 +7,7 @@ import {
   UserGroupIcon,
   BriefcaseIcon,
   ChartBarIcon,
-  FunnelIcon,
-  MagnifyingGlassIcon,
-  StarIcon,
-  ExclamationTriangleIcon
+  StarIcon
 } from '@heroicons/react/24/outline';
 
 const MatchResults = () => {
@@ -24,11 +21,6 @@ const MatchResults = () => {
   });
   const [calculating, setCalculating] = useState(false);
 
-  useEffect(() => {
-    fetchJobDetails();
-    fetchMatches();
-  }, [jobId, filters, fetchJobDetails, fetchMatches]);
-
   const fetchJobDetails = useCallback(async () => {
     try {
       const response = await axios.get(`/api/jobs/${jobId}`);
@@ -41,23 +33,33 @@ const MatchResults = () => {
   const fetchMatches = useCallback(async () => {
     try {
       setLoading(true);
-      const params = { jobId, ...filters };
-      
-      // Remove empty filter values
-      Object.keys(params).forEach(key => {
-        if (params[key] === '' || params[key] === null || params[key] === undefined) {
-          delete params[key];
-        }
-      });
-
-      const response = await axios.get('/api/matches/job/' + jobId, { params });
-      setMatches(response.data.data.matches);
+      const response = await axios.get(`/api/matches/job/${jobId}`);
+      setMatches(response.data.data.matches || []);
     } catch (error) {
       console.error('Error fetching matches:', error);
+      setMatches([]);
     } finally {
       setLoading(false);
     }
+  }, [jobId]);
+
+  useEffect(() => {
+    fetchJobDetails();
+    fetchMatches();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [jobId, filters]);
+
+  const calculateMatches = async () => {
+    try {
+      setCalculating(true);
+      await axios.post(`/api/matches/job/${jobId}`);
+      await fetchMatches();
+    } catch (error) {
+      console.error('Error calculating matches:', error);
+    } finally {
+      setCalculating(false);
+    }
+  };
 
   const calculateAllMatches = async () => {
     try {

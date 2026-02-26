@@ -8,7 +8,6 @@ import {
   BriefcaseIcon,
   ChartBarIcon,
   StarIcon,
-  ExclamationTriangleIcon,
   ArrowPathIcon
 } from '@heroicons/react/24/outline';
 
@@ -30,6 +29,7 @@ const MatchList = () => {
 
   useEffect(() => {
     fetchMatches();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters, pagination.current]);
 
   const fetchMatches = async () => {
@@ -50,7 +50,7 @@ const MatchList = () => {
 
       // Since we don't have a direct endpoint for all matches, we'll need to fetch from jobs
       // For now, let's simulate this or use the matches endpoint if available
-      const response = await axios.get('/api/matches/stats');
+      await axios.get('/api/matches/stats');
       
       // This is a placeholder - in a real implementation, you'd have a proper endpoint
       // For now, we'll show a message or fetch from individual jobs
