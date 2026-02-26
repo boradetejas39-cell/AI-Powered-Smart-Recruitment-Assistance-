@@ -54,7 +54,10 @@ import ComponentShowcase from './pages/ComponentShowcase';
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
 
+  console.log('🔒 ProtectedRoute check:', { isAuthenticated, loading });
+
   if (loading) {
+    console.log('⏳ ProtectedRoute: Still loading...');
     return (
       <div className="min-h-screen flex items-center justify-center">
         <LoadingSpinner size="lg" />
@@ -62,7 +65,13 @@ const ProtectedRoute = ({ children }) => {
     );
   }
 
-  return isAuthenticated ? children : <Navigate to="/login" replace />;
+  if (!isAuthenticated) {
+    console.log('🚫 ProtectedRoute: Not authenticated, redirecting to login');
+    return <Navigate to="/login" replace />;
+  }
+
+  console.log('✅ ProtectedRoute: Access granted');
+  return children;
 };
 
 // Public Route Component (redirect if authenticated)

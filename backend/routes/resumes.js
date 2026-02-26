@@ -232,7 +232,6 @@ router.post('/upload', authorize('hr', 'admin'), upload.single('resume'), asyncH
       // MongoDB path
       console.log('💾 Saving to MongoDB...');
       resume = await Resume.create(resumeData);
-      await resume.populate('uploadedBy', 'name email');
       console.log('✅ Saved to MongoDB');
     }
 

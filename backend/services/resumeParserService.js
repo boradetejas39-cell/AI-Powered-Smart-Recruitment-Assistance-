@@ -136,9 +136,26 @@ class ResumeParserService {
     
     console.log('🔍 Extracting name from lines:', lines.slice(0, 5));
     
-    // Try multiple strategies to find the name
+    // Strategy 1: Check first 3 lines for ALL CAPS names (common in Indian resumes)
+    for (let i = 0; i < Math.min(3, lines.length); i++) {
+      const trimmedLine = lines[i].trim();
+      // Check if it's all caps and looks like a name
+      if (/^[A-Z][A-Z\s]+$/.test(trimmedLine) && 
+          trimmedLine.split(' ').length >= 2 && 
+          trimmedLine.split(' ').length <= 4 &&
+          trimmedLine.length > 5 &&
+          trimmedLine.length < 50 &&
+          !trimmedLine.includes('@') &&
+          !trimmedLine.includes('WWW') &&
+          !/\d/.test(trimmedLine)) {
+        console.log('✅ Found ALL CAPS name at line', i, ':', trimmedLine);
+        return trimmedLine;
+      }
+    }
+    
+    // Strategy 2: Look for name patterns
     const namePatterns = [
-      // Pattern 1: Name followed by "Name" label (most common for Indian resumes)
+      // Pattern 1: Name followed by "Name" label
       /^Name\s+([A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+){1,3})(?:\s|$)/i,
       // Pattern 2: ALL CAPS name (common in Indian resumes)
       /^[A-Z]{2,}(?:\s+[A-Z]{2,}){1,3}$/,
@@ -147,15 +164,12 @@ class ResumeParserService {
       // Pattern 4: Line that looks like a name (2-4 words, first letter capitalized)
       /^[A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+){1,3}$/i,
       // Pattern 5: Name followed by email
-      /^([A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+){1,3})\s+(?:[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,})$/i,
-      // Pattern 6: Mixed case with spaces
-      /^[A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+){1,3}$/i
+      /^([A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+){1,3})\s+(?:[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,})$/i
     ];
 
-    // First try patterns on individual lines
+    // Try patterns on individual lines
     for (const line of lines) {
       const trimmedLine = line.trim();
-      console.log('🔍 Checking line for name:', trimmedLine);
       
       for (const pattern of namePatterns) {
         const match = trimmedLine.match(pattern);
@@ -180,32 +194,23 @@ class ResumeParserService {
       }
     }
     
-    // Special handling for Indian resume format (ALL CAPS names)
-    for (const line of lines) {
-      const trimmedLine = line.trim();
-      // Check if it's all caps and looks like a name
-      if (/^[A-Z\s]+$/.test(trimmedLine) && 
-          trimmedLine.split(' ').length >= 2 && 
-          trimmedLine.split(' ').length <= 4 &&
-          trimmedLine.length > 5 &&
-          trimmedLine.length < 50) {
-        console.log('✅ Found ALL CAPS name:', trimmedLine);
-        return trimmedLine;
+    // Strategy 3: Try first 2 lines as potential names
+    for (let i = 0; i < Math.min(2, lines.length); i++) {
+      const line = lines[i].trim();
+      if (line.split(' ').length >= 2 && 
+          line.split(' ').length <= 4 &&
+          !/\d/.test(line) &&
+          !/@/.test(line) &&
+          !/www\./i.test(line) &&
+          line.length > 3 &&
+          line.length < 50) {
+        console.log('✅ Using first valid line as name:', line);
+        return line;
       }
     }
     
-    // If no name found, return first non-empty line that might be a name
-    const fallbackName = lines.find(line => 
-      line.trim().length > 0 && 
-      line.trim().split(' ').length >= 2 && 
-      line.trim().split(' ').length <= 4 &&
-      !/\d/.test(line.trim()) &&
-      !/@/.test(line.trim()) &&
-      line.trim().length < 50
-    );
-    
-    console.log('🔍 Fallback name:', fallbackName?.trim() || 'Unknown Name');
-    return fallbackName?.trim() || 'Unknown Name';
+    console.log('🔍 Could not extract name, returning Unknown Name');
+    return 'Unknown Name';
   }
 
   /**

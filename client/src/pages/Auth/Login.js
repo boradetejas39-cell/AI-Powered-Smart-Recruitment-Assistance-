@@ -46,9 +46,12 @@ const Login = () => {
       console.log('📥 Login response:', result);
       
       if (result.success) {
+        console.log('✅ Login successful, navigating to dashboard...');
         toast.success('Login successful!');
         navigate('/app/dashboard');
+        console.log('🚀 Navigation triggered');
       } else {
+        console.log('❌ Login failed:', result.error);
         // Set error from backend response
         if (result.error) {
           setErrors({ general: result.error });

@@ -66,6 +66,9 @@ const ResumeList = () => {
       });
 
       const response = await api.get('/resumes', { params });
+      console.log('📋 Resume API response:', response.data);
+      console.log('📄 Resumes data:', response.data.data.resumes);
+      console.log('📊 First resume details:', response.data.data.resumes[0]);
       setResumes(response.data.data.resumes);
       setPagination(response.data.data.pagination);
     } catch (error) {
@@ -308,8 +311,10 @@ const ResumeList = () => {
                 </tr>
               </thead>
               <tbody className="table-body">
-                {resumes.map((resume) => (
-                  <tr key={resume._id} className="table-row">
+                {resumes.map((resume) => {
+                  console.log('📝 Rendering resume:', resume._id, 'Name:', resume.candidateName);
+                  return (
+                    <tr key={resume._id} className="table-row">
                     <td className="table-cell">
                       <div className="flex items-center">
                         <div className="flex-shrink-0 h-10 w-10">
@@ -320,10 +325,10 @@ const ResumeList = () => {
                         <div className="ml-4">
                           <div className="text-sm font-medium text-gray-900">
                             <Link to={`/app/resumes/${resume._id}`} className="hover:text-primary-600">
-                              {resume.candidateName}
+                              {resume.candidateName || 'No Name'}
                             </Link>
                           </div>
-                          <div className="text-sm text-gray-500">{resume.email}</div>
+                          <div className="text-sm text-gray-500">{resume.email || 'No Email'}</div>
                           {resume.phone && (
                             <div className="text-xs text-gray-400">{resume.phone}</div>
                           )}
@@ -417,8 +422,9 @@ const ResumeList = () => {
                         )}
                       </div>
                     </td>
-                  </tr>
-                ))}
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

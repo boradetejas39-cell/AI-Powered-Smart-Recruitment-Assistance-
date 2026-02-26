@@ -110,8 +110,7 @@ const resumeSchema = new mongoose.Schema({
     required: true
   },
   uploadedBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    type: String,
     required: [true, 'Uploader information is required']
   },
   totalExperience: {
@@ -147,8 +146,8 @@ const resumeSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['active', 'inactive', 'hired', 'rejected'],
-    default: 'active'
+    enum: ['new', 'active', 'inactive', 'hired', 'rejected'],
+    default: 'new'
   },
   source: {
     type: String,
@@ -295,7 +294,6 @@ resumeSchema.statics.searchResumes = function(query, filters = {}) {
   }
   
   return this.find(searchQuery)
-    .populate('uploadedBy', 'name email')
     .sort({ createdAt: -1 });
 };
 
