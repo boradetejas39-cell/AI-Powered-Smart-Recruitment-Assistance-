@@ -80,7 +80,8 @@ const ResumeList = () => {
 
   useEffect(() => {
     fetchResumes();
-  }, [pagination.current, filters]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pagination.current, filters.search, filters.status, filters.minExperience, filters.maxExperience]);
 
   const handleFilterChange = (key, value) => {
     setFilters({

@@ -6,11 +6,8 @@ import {
   DocumentTextIcon,
   UserIcon,
   MapPinIcon,
-  CalendarIcon,
   CurrencyDollarIcon,
   ClockIcon,
-  CheckCircleIcon,
-  ArrowRightIcon,
   PlusIcon
 } from '@heroicons/react/24/outline';
 import { Card, CardHeader, CardBody } from '../../components/UI/Card';

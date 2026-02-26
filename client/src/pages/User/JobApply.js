@@ -3,7 +3,6 @@ import { useParams, Link } from 'react-router-dom';
 import api from '../../api/axios';
 import {
   BriefcaseIcon,
-  UserIcon,
   MapPinIcon,
   CurrencyDollarIcon,
   ClockIcon,
@@ -25,6 +24,7 @@ const JobApply = () => {
 
   useEffect(() => {
     fetchJobData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [jobId]);
 
   const fetchJobData = async () => {

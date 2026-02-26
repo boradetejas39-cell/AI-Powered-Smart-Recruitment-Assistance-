@@ -24,6 +24,7 @@ const ResumeDetail = () => {
 
   useEffect(() => {
     fetchResumeDetails();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const fetchResumeDetails = async () => {
