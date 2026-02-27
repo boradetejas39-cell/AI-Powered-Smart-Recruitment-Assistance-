@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 
 export const Avatar = ({ src, alt, size = 'md', className = '', fallback = 'U', status }) => {
     const sizeClass = {
@@ -18,8 +18,8 @@ export const Avatar = ({ src, alt, size = 'md', className = '', fallback = 'U', 
             )}
             {status && (
                 <span className={`absolute bottom-0 right-0 rounded-full border-2 border-white ${status === 'online' ? 'bg-green-500' :
-                        status === 'away' ? 'bg-yellow-500' :
-                            'bg-gray-500'
+                    status === 'away' ? 'bg-yellow-500' :
+                        'bg-gray-500'
                     } ${size === 'xs' ? 'h-1.5 w-1.5' :
                         size === 'sm' ? 'h-2 w-2' :
                             'h-2.5 w-2.5'

@@ -15,11 +15,12 @@ import {
     StatusBadge,
     Tag,
 } from '../components/UI';
-import { HeartIcon, StarIcon, UserIcon } from '@heroicons/react/24/outline';
+import { UserIcon } from '@heroicons/react/24/outline';
 
 export const ComponentShowcase = () => {
     const [currentPage, setCurrentPage] = useState(1);
-    const [formData, setFormData] = useState({
+    // Form data state available for future use
+    const [/* formData */, /* setFormData */] = useState({
         name: '',
         email: '',
         message: ''

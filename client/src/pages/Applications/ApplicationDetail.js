@@ -34,6 +34,7 @@ const ApplicationDetail = () => {
     const [actionLoading, setActionLoading] = useState(false);
     const isHRAdmin = ['admin', 'hr', 'recruiter'].includes(user?.role);
 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => { fetchApp(); }, [id]);
 
     const fetchApp = async () => {
@@ -133,8 +134,8 @@ const ApplicationDetail = () => {
                             return (
                                 <div key={stage} className="flex items-center">
                                     <div className={`flex items-center px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap ${isCurrent ? 'bg-primary-600 text-white' :
-                                            isPast ? 'bg-green-100 text-green-700' :
-                                                'bg-gray-100 text-gray-400'
+                                        isPast ? 'bg-green-100 text-green-700' :
+                                            'bg-gray-100 text-gray-400'
                                         }`}>
                                         {isPast && <CheckCircleIcon className="h-3.5 w-3.5 mr-1" />}
                                         {stage}
@@ -155,7 +156,7 @@ const ApplicationDetail = () => {
                                 onClick={() => handleStageChange(stage)}
                                 disabled={actionLoading}
                                 className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors disabled:opacity-50 ${stage === 'rejected' ? 'border-red-300 text-red-600 hover:bg-red-50' :
-                                        'border-gray-300 text-gray-600 hover:bg-gray-50'
+                                    'border-gray-300 text-gray-600 hover:bg-gray-50'
                                     }`}
                             >
                                 Move to {stage}
@@ -187,8 +188,8 @@ const ApplicationDetail = () => {
                         </div>
                         <div className="bg-gray-50 rounded-lg p-4 text-center">
                             <span className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${screening.recommendation === 'hire' ? 'bg-green-100 text-green-700' :
-                                    screening.recommendation === 'maybe' ? 'bg-yellow-100 text-yellow-700' :
-                                        'bg-red-100 text-red-700'
+                                screening.recommendation === 'maybe' ? 'bg-yellow-100 text-yellow-700' :
+                                    'bg-red-100 text-red-700'
                                 }`}>
                                 {screening.recommendation?.toUpperCase()}
                             </span>

@@ -4,7 +4,6 @@ import {
     ChartBarIcon,
     BriefcaseIcon,
     UserGroupIcon,
-    ClockIcon,
     CheckCircleIcon,
     SparklesIcon,
     ArrowTrendingUpIcon,
@@ -20,7 +19,7 @@ const AnalyticsV2 = () => {
     const [skills, setSkills] = useState([]);
     const [scores, setScores] = useState([]);
     const [monthly, setMonthly] = useState([]);
-    const [interviewStats, setInterviewStats] = useState(null);
+    const [, setInterviewStats] = useState(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {

@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { adminAPI } from '../../api/v2';
 import {
     UsersIcon,
-    ShieldCheckIcon,
     NoSymbolIcon,
     TrashIcon,
     MagnifyingGlassIcon,
@@ -35,6 +34,7 @@ const AdminPanel = () => {
         if (tab === 'users') fetchUsers();
         else if (tab === 'logs') fetchLogs();
         else if (tab === 'system') fetchSystemStats();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [tab]);
 
     const fetchUsers = async (page = 1) => {

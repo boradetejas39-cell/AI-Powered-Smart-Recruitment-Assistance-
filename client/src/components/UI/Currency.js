@@ -5,16 +5,16 @@ import { formatCurrency, formatSalaryRange, getCurrencySymbol, getCurrencyOption
  * Currency Display Component
  * Displays formatted currency amounts and salary ranges
  */
-export const CurrencyDisplay = ({ 
-  amount, 
-  currency = 'USD', 
-  showCode = false, 
-  showDecimals = true, 
+export const CurrencyDisplay = ({
+  amount,
+  currency = 'USD',
+  showCode = false,
+  showDecimals = true,
   compact = false,
   className = ''
 }) => {
   const formatted = formatCurrency(amount, currency, { showCode, showDecimals, compact });
-  
+
   return (
     <span className={`currency-display ${className}`}>
       {formatted}
@@ -26,15 +26,15 @@ export const CurrencyDisplay = ({
  * Salary Range Display Component
  * Displays formatted salary ranges
  */
-export const SalaryRangeDisplay = ({ 
-  salary, 
-  showCode = false, 
-  showDecimals = false, 
+export const SalaryRangeDisplay = ({
+  salary,
+  showCode = false,
+  showDecimals = false,
   compact = false,
   className = ''
 }) => {
   const formatted = formatSalaryRange(salary, { showCode, showDecimals, compact });
-  
+
   return (
     <span className={`salary-range ${className}`}>
       {formatted}
@@ -48,7 +48,7 @@ export const SalaryRangeDisplay = ({
  */
 export const CurrencySymbol = ({ currency = 'USD', className = '' }) => {
   const symbol = getCurrencySymbol(currency);
-  
+
   return (
     <span className={`currency-symbol ${className}`}>
       {symbol}
@@ -60,11 +60,11 @@ export const CurrencySymbol = ({ currency = 'USD', className = '' }) => {
  * Salary Input Component
  * Input field for salary amounts with currency selector
  */
-export const SalaryInput = ({ 
-  value, 
-  onChange, 
-  currency, 
-  onCurrencyChange, 
+export const SalaryInput = ({
+  value,
+  onChange,
+  currency,
+  onCurrencyChange,
   placeholder = '0',
   min = 0,
   max = 10000000,
@@ -109,9 +109,9 @@ export const SalaryInput = ({
  * Salary Range Input Component
  * Input fields for salary min/max with single currency selector
  */
-export const SalaryRangeInput = ({ 
-  salary, 
-  onChange, 
+export const SalaryRangeInput = ({
+  salary,
+  onChange,
   disabled = false,
   className = ''
 }) => {
@@ -145,7 +145,7 @@ export const SalaryRangeInput = ({
             className="input"
           />
         </div>
-        
+
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Maximum Salary
@@ -161,7 +161,7 @@ export const SalaryRangeInput = ({
             className="input"
           />
         </div>
-        
+
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Currency
@@ -184,7 +184,7 @@ export const SalaryRangeInput = ({
   );
 };
 
-export default {
+const CurrencyComponents = {
   CurrencyDisplay,
   SalaryRangeDisplay,
   CurrencySymbol,
@@ -192,3 +192,5 @@ export default {
   SalaryRangeInput,
   getCurrencyOptions
 };
+
+export default CurrencyComponents;

@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { ChevronDownIcon } from '@heroicons/react/24/outline';
 
 export const Dropdown = ({ button, items = [], align = 'left', className = '' }) => {
     const [isOpen, setIsOpen] = useState(false);
@@ -110,8 +109,8 @@ export const Table = ({ columns, data, rowAction, className = '' }) => {
                                                 key={idx}
                                                 onClick={() => action.onClick(row)}
                                                 className={`text-xs font-medium px-3 py-1 rounded transition-colors ${action.variant === 'danger'
-                                                        ? 'text-red-600 hover:bg-red-50'
-                                                        : 'text-blue-600 hover:bg-blue-50'
+                                                    ? 'text-red-600 hover:bg-red-50'
+                                                    : 'text-blue-600 hover:bg-blue-50'
                                                     }`}
                                             >
                                                 {action.label}

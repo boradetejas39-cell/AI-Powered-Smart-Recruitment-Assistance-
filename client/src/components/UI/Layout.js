@@ -1,5 +1,4 @@
-import React, { useState } from 'react';
-import { MenuIcon, XIcon } from '@heroicons/react/24/outline';
+import React from 'react';
 
 export const Header = ({ logo, title, actions, className = '' }) => {
     return (
@@ -29,8 +28,8 @@ export const Sidebar = ({ items, logo, className = '' }) => {
                         key={index}
                         href={item.href}
                         className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors ${item.active
-                                ? 'bg-blue-600 text-white'
-                                : 'text-gray-300 hover:bg-gray-800'
+                            ? 'bg-blue-600 text-white'
+                            : 'text-gray-300 hover:bg-gray-800'
                             }`}
                     >
                         {item.icon && <item.icon className="h-5 w-5" />}

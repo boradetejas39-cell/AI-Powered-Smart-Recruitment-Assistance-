@@ -5,7 +5,6 @@ import { useAuth } from '../../contexts/AuthContext';
 import {
     DocumentTextIcon,
     FunnelIcon,
-    MagnifyingGlassIcon,
     EyeIcon,
     ArrowPathIcon,
     ChevronLeftIcon,
@@ -30,6 +29,7 @@ const ApplicationList = () => {
     const [meta, setMeta] = useState({ page: 1, pages: 1, total: 0 });
     const [filters, setFilters] = useState({ stage: '', search: '', page: 1 });
 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => { fetchApplications(); }, [filters.page, filters.stage]);
 
     const fetchApplications = async () => {
