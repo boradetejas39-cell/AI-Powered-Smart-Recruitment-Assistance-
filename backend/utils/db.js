@@ -26,11 +26,9 @@ async function connectDB() {
 
     try {
         await mongoose.connect(MONGODB_URI, {
-            useNewUrlParser: true,
-            useUnifiedTopology: true,
-            serverSelectionTimeoutMS: 5000, // Timeout after 5 seconds
+            serverSelectionTimeoutMS: 5000,
         });
-        console.log('Connected to MongoDB');
+        console.log('✅ Connected to MongoDB');
         return true;
     } catch (err) {
         console.error('MongoDB connection error:', err.message || err);
@@ -44,12 +42,12 @@ async function connectDB() {
  */
 function initializeFileDatabase() {
     const dbDir = path.join(__dirname, '../file-db');
-    
+
     // Create database directory if it doesn't exist
     if (!fs.existsSync(dbDir)) {
         fs.mkdirSync(dbDir, { recursive: true });
     }
-    
+
     // Initialize data files
     const dataFiles = {
         users: path.join(dbDir, 'users.json'),
@@ -58,7 +56,7 @@ function initializeFileDatabase() {
         matches: path.join(dbDir, 'matches.json'),
         applications: path.join(dbDir, 'applications.json')
     };
-    
+
     // Create empty data files if they don't exist
     Object.entries(dataFiles).forEach(([key, filePath]) => {
         if (!fs.existsSync(filePath)) {
@@ -66,7 +64,7 @@ function initializeFileDatabase() {
             console.log(`Created ${key} data file: ${filePath}`);
         }
     });
-    
+
     // Set up global file-based database helpers
     global.fileDB = {
         read: (collection) => {
@@ -108,7 +106,7 @@ function initializeFileDatabase() {
                 return data.find(item => item._id === query);
             } else if (typeof query === 'object') {
                 // Find by query object
-                return data.find(item => 
+                return data.find(item =>
                     Object.keys(query).every(key => item[key] === query[key])
                 );
             }
@@ -117,12 +115,12 @@ function initializeFileDatabase() {
         filter: (collection, query) => {
             const data = global.fileDB.read(collection);
             if (!query) return data;
-            return data.filter(item => 
+            return data.filter(item =>
                 Object.keys(query).every(key => item[key] === query[key])
             );
         }
     };
-    
+
     console.log('File-based database initialized successfully');
 }
 

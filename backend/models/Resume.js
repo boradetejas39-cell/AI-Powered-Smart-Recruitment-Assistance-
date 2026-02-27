@@ -13,13 +13,8 @@ const resumeSchema = new mongoose.Schema({
   },
   email: {
     type: String,
-    required: [true, 'Email is required'],
     trim: true,
-    lowercase: true,
-    match: [
-      /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/,
-      'Please enter a valid email'
-    ]
+    lowercase: true
   },
   phone: {
     type: String,
@@ -27,32 +22,26 @@ const resumeSchema = new mongoose.Schema({
   },
   skills: {
     type: [String],
-    required: [true, 'Skills are required'],
-    validate: {
-      validator: function(skills) {
-        return skills.length > 0;
-      },
-      message: 'At least one skill must be specified'
-    }
+    default: []
   },
   experience: [{
     company: {
       type: String,
-      required: true,
-      trim: true
+      trim: true,
+      default: ''
     },
     position: {
       type: String,
-      required: true,
-      trim: true
+      trim: true,
+      default: ''
     },
     startDate: {
       type: Date,
-      required: true
+      default: null
     },
     endDate: {
       type: Date,
-      default: null // null for current job
+      default: null
     },
     description: {
       type: String,
@@ -66,13 +55,13 @@ const resumeSchema = new mongoose.Schema({
   education: [{
     institution: {
       type: String,
-      required: true,
-      trim: true
+      trim: true,
+      default: ''
     },
     degree: {
       type: String,
-      required: true,
-      trim: true
+      trim: true,
+      default: ''
     },
     field: {
       type: String,
@@ -80,16 +69,20 @@ const resumeSchema = new mongoose.Schema({
     },
     startDate: {
       type: Date,
-      required: true
+      default: null
     },
     endDate: {
       type: Date,
-      required: true
+      default: null
+    },
+    year: {
+      type: String,
+      trim: true
     },
     gpa: {
       type: Number,
       min: 0,
-      max: 4.0
+      max: 10.0
     }
   }],
   rawText: {
@@ -176,26 +169,26 @@ resumeSchema.index({ uploadedBy: 1 });
 resumeSchema.index({ candidateName: 'text', rawText: 'text' });
 
 // Virtual for total years of experience
-resumeSchema.virtual('totalYearsExperience').get(function() {
+resumeSchema.virtual('totalYearsExperience').get(function () {
   return this.totalExperience || 0;
 });
 
 // Virtual for current position
-resumeSchema.virtual('currentPosition').get(function() {
+resumeSchema.virtual('currentPosition').get(function () {
   const currentJob = this.experience.find(exp => !exp.endDate);
   return currentJob ? currentJob.position : null;
 });
 
 // Virtual for current company
-resumeSchema.virtual('currentCompany').get(function() {
+resumeSchema.virtual('currentCompany').get(function () {
   const currentJob = this.experience.find(exp => !exp.endDate);
   return currentJob ? currentJob.company : null;
 });
 
 // Virtual for highest education
-resumeSchema.virtual('highestEducation').get(function() {
+resumeSchema.virtual('highestEducation').get(function () {
   if (!this.education || this.education.length === 0) return null;
-  
+
   const educationLevels = {
     'phd': 4,
     'master': 3,
@@ -204,32 +197,32 @@ resumeSchema.virtual('highestEducation').get(function() {
     'diploma': 0.5,
     'certificate': 0.25
   };
-  
+
   let highest = this.education[0];
   let highestScore = 0;
-  
+
   this.education.forEach(edu => {
     const degree = edu.degree.toLowerCase();
     let score = 0;
-    
+
     for (const [level, levelScore] of Object.entries(educationLevels)) {
       if (degree.includes(level)) {
         score = levelScore;
         break;
       }
     }
-    
+
     if (score > highestScore) {
       highestScore = score;
       highest = edu;
     }
   });
-  
+
   return highest;
 });
 
 // Pre-save middleware to process skills and calculate experience
-resumeSchema.pre('save', function(next) {
+resumeSchema.pre('save', function (next) {
   // Clean and normalize skills
   if (this.skills) {
     this.skills = this.skills
@@ -237,45 +230,45 @@ resumeSchema.pre('save', function(next) {
       .filter(skill => skill.length > 0)
       .filter((skill, index, self) => self.indexOf(skill) === index); // Remove duplicates
   }
-  
+
   // Clean tags
   if (this.tags) {
     this.tags = this.tags
       .map(tag => tag.trim().toLowerCase())
       .filter(tag => tag.length > 0);
   }
-  
+
   // Calculate total experience
   this.totalExperience = this.calculateTotalExperience();
-  
+
   next();
 });
 
 // Instance method to calculate total experience
-resumeSchema.methods.calculateTotalExperience = function() {
+resumeSchema.methods.calculateTotalExperience = function () {
   if (!this.experience || this.experience.length === 0) return 0;
-  
+
   let totalMonths = 0;
-  
+
   this.experience.forEach(exp => {
     const start = new Date(exp.startDate);
     const end = exp.endDate ? new Date(exp.endDate) : new Date();
-    
-    const months = (end.getFullYear() - start.getFullYear()) * 12 + 
-                   (end.getMonth() - start.getMonth());
+
+    const months = (end.getFullYear() - start.getFullYear()) * 12 +
+      (end.getMonth() - start.getMonth());
     totalMonths += Math.max(0, months);
   });
-  
+
   return Math.round((totalMonths / 12) * 10) / 10; // Round to 1 decimal place
 };
 
 // Static method to find active resumes
-resumeSchema.statics.findActiveResumes = function() {
+resumeSchema.statics.findActiveResumes = function () {
   return this.find({ status: 'active' }).sort({ createdAt: -1 });
 };
 
 // Static method to search resumes by skills
-resumeSchema.statics.findBySkills = function(requiredSkills, minMatch = 1) {
+resumeSchema.statics.findBySkills = function (requiredSkills, minMatch = 1) {
   return this.find({
     status: 'active',
     skills: { $in: requiredSkills }
@@ -283,22 +276,22 @@ resumeSchema.statics.findBySkills = function(requiredSkills, minMatch = 1) {
 };
 
 // Static method to search resumes
-resumeSchema.statics.searchResumes = function(query, filters = {}) {
+resumeSchema.statics.searchResumes = function (query, filters = {}) {
   const searchQuery = {
     status: 'active',
     ...filters
   };
-  
+
   if (query) {
     searchQuery.$text = { $search: query };
   }
-  
+
   return this.find(searchQuery)
     .sort({ createdAt: -1 });
 };
 
 // Instance method to add skill
-resumeSchema.methods.addSkill = function(skill) {
+resumeSchema.methods.addSkill = function (skill) {
   const normalizedSkill = skill.trim().toLowerCase();
   if (!this.skills.includes(normalizedSkill)) {
     this.skills.push(normalizedSkill);
@@ -307,7 +300,7 @@ resumeSchema.methods.addSkill = function(skill) {
 };
 
 // Instance method to remove skill
-resumeSchema.methods.removeSkill = function(skill) {
+resumeSchema.methods.removeSkill = function (skill) {
   const normalizedSkill = skill.trim().toLowerCase();
   this.skills = this.skills.filter(s => s !== normalizedSkill);
   return this.save();

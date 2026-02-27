@@ -31,7 +31,7 @@ const ResumeDetail = () => {
     try {
       setLoading(true);
       const response = await api.get(`/resumes/${id}`);
-      setResume(response.data.data);
+      setResume(response.data.data.resume || response.data.data);
       setError(null);
     } catch (err) {
       console.error('Error fetching resume details:', err);
@@ -63,7 +63,7 @@ const ResumeDetail = () => {
 
   const formatExperience = (experience) => {
     if (!experience || experience.length === 0) return 'No experience';
-    
+
     const totalYears = experience.reduce((total, exp) => {
       const start = new Date(exp.startDate);
       const end = exp.endDate ? new Date(exp.endDate) : new Date();
@@ -144,7 +144,7 @@ const ResumeDetail = () => {
             <PencilIcon className="h-5 w-5 mr-2" />
             Edit
           </button>
-          <button 
+          <button
             onClick={handleDelete}
             className="btn-danger"
           >
@@ -176,7 +176,7 @@ const ResumeDetail = () => {
                 </div>
               </div>
             </div>
-            
+
             <div className="space-y-4">
               <div className="flex items-center space-x-2">
                 <EnvelopeIcon className="h-5 w-5 text-gray-400" />

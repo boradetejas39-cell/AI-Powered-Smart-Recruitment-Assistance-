@@ -2,6 +2,8 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
 const { protect } = require('../middleware/auth');
+const memoryStore = require('../utils/memoryStore');
+const bcrypt = require('bcryptjs');
 
 const router = express.Router();
 
@@ -46,19 +48,8 @@ router.post('/register', [
 
     const { name, email, password, role = 'hr', company } = req.body;
 
-    // Use file-based database or in-memory storage
-    let users = [];
-    if (global.fileDB) {
-      users = global.fileDB.read('users');
-    } else if (global.users) {
-      users = global.users;
-    } else {
-      global.users = [];
-      users = global.users;
-    }
-
-    // Check if user already exists
-    const existingUser = users.find(u => u.email === email);
+    // Check if user already exists (using the same store that login uses)
+    const existingUser = await memoryStore.findOne({ email });
     if (existingUser) {
       return res.status(400).json({
         success: false,
@@ -66,25 +57,14 @@ router.post('/register', [
       });
     }
 
-    // Create new user (demo mode - no password hashing)
-    const user = {
-      _id: Date.now().toString(),
+    // Create new user via memoryStore (hashes password with bcrypt automatically)
+    const user = await memoryStore.create({
       name,
       email,
-      password, // In production, this should be hashed
+      password,
       role,
-      company: company || '',
-      createdAt: new Date(),
-      lastLogin: new Date(),
-      isActive: true
-    };
-
-    // Add to storage
-    if (global.fileDB) {
-      global.fileDB.add('users', user);
-    } else {
-      global.users.push(user);
-    }
+      company: company || ''
+    });
 
     // Generate JWT token
     const token = jwt.sign(
@@ -133,7 +113,7 @@ router.post('/login', [
 ], async (req, res) => {
   try {
     console.log('🔍 Login request received:', req.body);
-    
+
     // Check for validation errors
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -149,21 +129,8 @@ router.post('/login', [
     console.log('📧 Email:', email);
     console.log('🔑 Password length:', password.length);
 
-    // Use file-based database or in-memory storage
-    let users = [];
-    if (global.fileDB) {
-      users = global.fileDB.read('users');
-    } else if (global.users) {
-      users = global.users;
-    } else {
-      global.users = [];
-      users = global.users;
-    }
-
-    console.log('👥 Total users in database:', users.length);
-
-    // Find user
-    const user = users.find(u => u.email === email);
+    // Use memory store
+    const user = await memoryStore.findOne({ email });
     console.log('🔍 Found user:', user ? user.email : 'Not found');
 
     if (!user) {
@@ -183,13 +150,12 @@ router.post('/login', [
       });
     }
 
-    // Check password (demo mode - simple comparison)
+    // Check password using bcrypt
     console.log('🔐 Checking password...');
-    console.log('📝 Stored password:', user.password);
-    console.log('📝 Provided password:', password);
-    console.log('✅ Password match:', user.password === password);
-    
-    if (user.password !== password) {
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    console.log('✅ Password match:', isPasswordValid);
+
+    if (!isPasswordValid) {
       console.log('❌ Password mismatch');
       return res.status(401).json({
         success: false,
@@ -300,44 +266,44 @@ router.put('/profile', protect, [
     }
 
     const { name, email, company } = req.body;
-    const userIndex = global.users.findIndex(u => u._id === req.user._id);
-    
-    if (userIndex === -1) {
+
+    // Check if email is already taken by another user
+    if (email) {
+      const existingUser = await memoryStore.findOne({ email });
+      if (existingUser && existingUser._id.toString() !== req.user._id.toString()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Email is already taken by another user'
+        });
+      }
+    }
+
+    const updateData = {};
+    if (name) updateData.name = name;
+    if (email) updateData.email = email;
+    if (company !== undefined) updateData.company = company;
+    updateData.updatedAt = new Date();
+
+    const updatedUser = await memoryStore.findByIdAndUpdate(req.user._id, updateData, { new: true });
+
+    if (!updatedUser) {
       return res.status(404).json({
         success: false,
         message: 'User not found'
       });
     }
 
-    const user = global.users[userIndex];
-
-    if (name) user.name = name;
-    if (email) {
-      // Check if email is already taken by another user
-      const existingUser = global.users.find(u => u.email === email && u._id !== req.user._id);
-      if (existingUser) {
-        return res.status(400).json({
-          success: false,
-          message: 'Email is already taken by another user'
-        });
-      }
-      user.email = email;
-    }
-    if (company !== undefined) user.company = company;
-
-    user.updatedAt = new Date();
-
     res.json({
       success: true,
       message: 'Profile updated successfully',
       data: {
         user: {
-          id: user._id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-          company: user.company,
-          updatedAt: user.updatedAt
+          id: updatedUser._id,
+          name: updatedUser.name,
+          email: updatedUser.email,
+          role: updatedUser.role,
+          company: updatedUser.company,
+          updatedAt: updatedUser.updatedAt
         }
       }
     });
@@ -375,28 +341,32 @@ router.post('/change-password', protect, [
     }
 
     const { currentPassword, newPassword } = req.body;
-    const userIndex = global.users.findIndex(u => u._id === req.user._id);
-    
-    if (userIndex === -1) {
+
+    // Get user with password from store
+    const user = await memoryStore.findById(req.user._id);
+
+    if (!user) {
       return res.status(404).json({
         success: false,
         message: 'User not found'
       });
     }
 
-    const user = global.users[userIndex];
-
-    // Verify current password
-    if (user.password !== currentPassword) {
+    // Verify current password using bcrypt
+    const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
+    if (!isPasswordValid) {
       return res.status(400).json({
         success: false,
         message: 'Current password is incorrect'
       });
     }
 
-    // Update password
-    user.password = newPassword;
-    user.updatedAt = new Date();
+    // Hash new password and update
+    const hashedPassword = await bcrypt.hash(newPassword, 12);
+    await memoryStore.findByIdAndUpdate(req.user._id, {
+      password: hashedPassword,
+      updatedAt: new Date()
+    });
 
     res.json({
       success: true,

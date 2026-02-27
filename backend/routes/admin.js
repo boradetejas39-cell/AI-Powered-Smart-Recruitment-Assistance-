@@ -1,8 +1,13 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const { body, validationResult } = require('express-validator');
 const { protect, adminOnly } = require('../middleware/auth');
+const memoryStore = require('../utils/memoryStore');
 
 const router = express.Router();
+
+/** True when Mongoose has an active MongoDB connection */
+const isMongoConnected = () => mongoose.connection.readyState === 1;
 
 // All admin routes require authentication + admin role
 router.use(protect, adminOnly);
@@ -10,15 +15,26 @@ router.use(protect, adminOnly);
 // ─────────────────────────────────────────────────────────────────────────────
 // Helper: read/write users from whichever store is active
 // ─────────────────────────────────────────────────────────────────────────────
-function readUsers() { return global.fileDB ? global.fileDB.read('users') : (global.users || []); }
-function writeUsers(users) { if (global.fileDB) global.fileDB.write('users', users); else global.users = users; }
+async function readUsers() {
+    if (isMongoConnected()) {
+        return await memoryStore.findAll();
+    }
+    return global.fileDB ? global.fileDB.read('users') : (global.users || []);
+}
+async function writeUsers(users) {
+    // For MongoDB path, individual updates are used instead
+    if (!isMongoConnected()) {
+        if (global.fileDB) global.fileDB.write('users', users);
+        else global.users = users;
+    }
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // GET /api/admin/users  — list all system users
 // ─────────────────────────────────────────────────────────────────────────────
-router.get('/users', (req, res) => {
+router.get('/users', async (req, res) => {
     const { role, isActive, page = 1, limit = 20 } = req.query;
-    let users = readUsers();
+    let users = await readUsers();
 
     // Filters
     if (role) users = users.filter(u => u.role === role);
@@ -43,8 +59,8 @@ router.get('/users', (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // GET /api/admin/users/:id  — get single user detail
 // ─────────────────────────────────────────────────────────────────────────────
-router.get('/users/:id', (req, res) => {
-    const users = readUsers();
+router.get('/users/:id', async (req, res) => {
+    const users = await readUsers();
     const user = users.find(u => u._id === req.params.id);
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
     const { password, ...safe } = user;
@@ -56,11 +72,23 @@ router.get('/users/:id', (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 router.put('/users/:id/role', [
     body('role').isIn(['admin', 'hr']).withMessage("Role must be 'admin' or 'hr'")
-], (req, res) => {
+], async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) return res.status(400).json({ success: false, message: 'Validation failed', errors: errors.array() });
 
-    const users = readUsers();
+    if (isMongoConnected()) {
+        const user = await memoryStore.findById(req.params.id);
+        if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+        if (user._id.toString() === req.user._id.toString() && req.body.role !== 'admin') {
+            return res.status(400).json({ success: false, message: 'You cannot change your own role.' });
+        }
+        const updated = await memoryStore.findByIdAndUpdate(req.params.id, { role: req.body.role, updatedAt: new Date() }, { new: true });
+        console.log(`[ADMIN] ${req.user.email} changed role of ${updated.email} → ${req.body.role}`);
+        const { password, ...safe } = updated;
+        return res.json({ success: true, message: 'User role updated successfully', data: { user: safe } });
+    }
+
+    const users = await readUsers();
     const idx = users.findIndex(u => u._id === req.params.id);
     if (idx === -1) return res.status(404).json({ success: false, message: 'User not found' });
 
@@ -83,11 +111,23 @@ router.put('/users/:id/role', [
 // ─────────────────────────────────────────────────────────────────────────────
 router.put('/users/:id/status', [
     body('isActive').isBoolean().withMessage('isActive must be a boolean')
-], (req, res) => {
+], async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) return res.status(400).json({ success: false, message: 'Validation failed', errors: errors.array() });
 
-    const users = readUsers();
+    if (isMongoConnected()) {
+        const user = await memoryStore.findById(req.params.id);
+        if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+        if (user._id.toString() === req.user._id.toString()) {
+            return res.status(400).json({ success: false, message: 'You cannot deactivate your own account.' });
+        }
+        await memoryStore.findByIdAndUpdate(req.params.id, { isActive: req.body.isActive, updatedAt: new Date() });
+        const action = req.body.isActive ? 'activated' : 'deactivated';
+        console.log(`[ADMIN] ${req.user.email} ${action} account of ${user.email}`);
+        return res.json({ success: true, message: `User account ${action} successfully` });
+    }
+
+    const users = await readUsers();
     const idx = users.findIndex(u => u._id === req.params.id);
     if (idx === -1) return res.status(404).json({ success: false, message: 'User not found' });
 
@@ -107,8 +147,19 @@ router.put('/users/:id/status', [
 // ─────────────────────────────────────────────────────────────────────────────
 // DELETE /api/admin/users/:id  — permanently delete a user
 // ─────────────────────────────────────────────────────────────────────────────
-router.delete('/users/:id', (req, res) => {
-    const users = readUsers();
+router.delete('/users/:id', async (req, res) => {
+    if (isMongoConnected()) {
+        const user = await memoryStore.findById(req.params.id);
+        if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+        if (user._id.toString() === req.user._id.toString()) {
+            return res.status(400).json({ success: false, message: 'You cannot delete your own account.' });
+        }
+        await memoryStore.deleteById(req.params.id);
+        console.log(`[ADMIN] ${req.user.email} permanently deleted user ${user.email}`);
+        return res.json({ success: true, message: 'User deleted successfully' });
+    }
+
+    const users = await readUsers();
     const idx = users.findIndex(u => u._id === req.params.id);
     if (idx === -1) return res.status(404).json({ success: false, message: 'User not found' });
 
@@ -126,11 +177,22 @@ router.delete('/users/:id', (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // GET /api/admin/system-stats  — platform-wide statistics (admin dashboard)
 // ─────────────────────────────────────────────────────────────────────────────
-router.get('/system-stats', (req, res) => {
-    const users = readUsers();
-    const jobs = global.fileDB ? global.fileDB.read('jobs') : [];
-    const resumes = global.fileDB ? global.fileDB.read('resumes') : [];
-    const matches = global.fileDB ? global.fileDB.read('matches') : [];
+router.get('/system-stats', async (req, res) => {
+    const users = await readUsers();
+    let jobs, resumes, matches;
+
+    if (isMongoConnected()) {
+        const Job = require('../models/Job');
+        const Resume = require('../models/Resume');
+        const Match = require('../models/Match');
+        jobs = await Job.find().lean();
+        resumes = await Resume.find().lean();
+        matches = await Match.find().lean();
+    } else {
+        jobs = global.fileDB ? global.fileDB.read('jobs') : [];
+        resumes = global.fileDB ? global.fileDB.read('resumes') : [];
+        matches = global.fileDB ? global.fileDB.read('matches') : [];
+    }
 
     res.json({
         success: true,

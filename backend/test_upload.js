@@ -4,7 +4,7 @@ const FormData = require('form-data');
 const http = require('http');
 
 const filePath = process.argv[2] || 'uploads/test_resume.pdf';
-const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjE3NzEwMDU4NjEwNTYiLCJpYXQiOjE3NzIwOTAxNTEsImV4cCI6MTc3MjY5NDk1MX0.UYvKLgpL7XV5XQWrt8UBxQE44kEr9k0ey2lXfb42x3Q';
+const token = fs.readFileSync('token.txt', 'utf8').trim();
 
 const form = new FormData();
 form.append('resume', fs.createReadStream(filePath), {

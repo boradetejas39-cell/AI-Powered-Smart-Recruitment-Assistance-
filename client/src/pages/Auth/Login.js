@@ -33,10 +33,10 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     console.log('🔍 Login form submitted');
     console.log('Form data:', formData);
-    
+
     setLoading(true);
     setErrors({});
 
@@ -44,7 +44,7 @@ const Login = () => {
       console.log('📤 Sending login request...');
       const result = await login(formData);
       console.log('📥 Login response:', result);
-      
+
       if (result.success) {
         console.log('✅ Login successful, navigating to dashboard...');
         toast.success('Login successful!');
@@ -86,8 +86,9 @@ const Login = () => {
               create a new account
             </Link>
           </p>
+
         </div>
-        
+
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="space-y-4">
             <div>
@@ -112,7 +113,7 @@ const Login = () => {
                 />
               </div>
             </div>
-            
+
             <div>
               <label htmlFor="password" className="sr-only">
                 Password

@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const memoryStore = require('../utils/memoryStore');
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Role constants  (single source of truth — import these in routes if needed)
@@ -11,9 +12,19 @@ const ROLES = {
 // ─────────────────────────────────────────────────────────────────────────────
 // Helper: load the user record from whichever store is active
 // ─────────────────────────────────────────────────────────────────────────────
-function getUserById(id) {
-  const users = global.fileDB ? global.fileDB.read('users') : (global.users || []);
-  return users.find(u => u._id.toString() === id) || null;
+async function getUserById(id) {
+  try {
+    // Try memory store first
+    const user = await memoryStore.findById(id);
+    if (user) return user;
+    
+    // Fall back to file-based database
+    const users = global.fileDB ? global.fileDB.read('users') : (global.users || []);
+    return users.find(u => u._id.toString() === id) || null;
+  } catch (error) {
+    console.error('Error getting user by ID:', error);
+    return null;
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -44,7 +55,7 @@ const protect = async (req, res, next) => {
       return res.status(401).json({ success: false, message: 'Invalid token.' });
     }
 
-    const user = getUserById(decoded.id);
+    const user = await getUserById(decoded.id);
 
     if (!user) {
       return res.status(401).json({ success: false, message: 'User associated with this token no longer exists.' });
@@ -147,7 +158,7 @@ const optionalAuth = async (req, res, next) => {
       const token = header.split(' ')[1];
       try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET || 'demo-secret-key');
-        const user = getUserById(decoded.id);
+        const user = await getUserById(decoded.id);
         if (user && user.isActive) req.user = user;
       } catch {
         // Silently ignore invalid / expired tokens for optional auth

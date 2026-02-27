@@ -1,8 +1,12 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const { body, validationResult } = require('express-validator');
 const Job = require('../models/Job');
 const { protect, hrOrAdmin, authorize, checkOwnership } = require('../middleware/auth');
 const { asyncHandler } = require('../middleware/errorHandler');
+
+/** True when Mongoose has an active MongoDB connection */
+const isMongoConnected = () => mongoose.connection.readyState === 1;
 
 const router = express.Router();
 
@@ -27,7 +31,7 @@ router.post('/apply', asyncHandler(async (req, res) => {
 
     // Check if job exists
     let job;
-    if (global.fileDB) {
+    if (!isMongoConnected() && global.fileDB) {
       const jobs = global.fileDB.read('jobs');
       job = jobs.find(j => j._id === jobId);
     } else {
@@ -43,7 +47,7 @@ router.post('/apply', asyncHandler(async (req, res) => {
 
     // Check if resume exists and belongs to user
     let resume;
-    if (global.fileDB) {
+    if (!isMongoConnected() && global.fileDB) {
       const resumes = global.fileDB.read('resumes');
       resume = resumes.find(r => r._id === resumeId && r.uploadedBy === req.user._id);
     } else {
@@ -73,7 +77,7 @@ router.post('/apply', asyncHandler(async (req, res) => {
       appliedAt: new Date().toISOString()
     };
 
-    if (global.fileDB) {
+    if (!isMongoConnected() && global.fileDB) {
       // File-based database path
       global.fileDB.add('applications', application);
     } else {
@@ -108,7 +112,7 @@ router.get('/my-applications', asyncHandler(async (req, res) => {
   try {
     let applications;
 
-    if (global.fileDB) {
+    if (!isMongoConnected() && global.fileDB) {
       // File-based database path
       const allApplications = global.fileDB.read('applications') || [];
       applications = allApplications.filter(app => app.userId === req.user._id);
@@ -140,7 +144,7 @@ router.get('/', asyncHandler(async (req, res) => {
   try {
     let jobs;
 
-    if (global.fileDB) {
+    if (!isMongoConnected() && global.fileDB) {
       // File-based database path
       jobs = global.fileDB.read('jobs');
       // Filter only active jobs for regular users
@@ -227,7 +231,7 @@ router.post('/', authorize('hr', 'admin'), [
   };
 
   // For file-based database, save to file instead of MongoDB
-  if (global.fileDB) {
+  if (!isMongoConnected() && global.fileDB) {
     const jobs = global.fileDB.read('jobs');
     const newJob = {
       _id: Date.now().toString(),
@@ -316,7 +320,7 @@ router.get('/', asyncHandler(async (req, res) => {
   let jobs;
   let total;
 
-  if (global.fileDB) {
+  if (!isMongoConnected() && global.fileDB) {
     // File-based database path
     const allJobs = global.fileDB.read('jobs');
     const users = global.fileDB.read('users');
@@ -410,7 +414,7 @@ router.get('/', asyncHandler(async (req, res) => {
 router.get('/:id', asyncHandler(async (req, res) => {
   let job;
 
-  if (global.fileDB) {
+  if (!isMongoConnected() && global.fileDB) {
     // File-based database path
     const allJobs = global.fileDB.read('jobs');
     const users = global.fileDB.read('users');
@@ -504,7 +508,7 @@ router.put('/:id', [
 
   let job;
 
-  if (global.fileDB) {
+  if (!isMongoConnected() && global.fileDB) {
     // File-based database path
     const allJobs = global.fileDB.read('jobs');
     const jobIndex = allJobs.findIndex(j => j._id === req.params.id);
@@ -588,7 +592,7 @@ router.put('/:id', [
 router.delete('/:id', asyncHandler(async (req, res) => {
   let job;
 
-  if (global.fileDB) {
+  if (!isMongoConnected() && global.fileDB) {
     // File-based database path
     const allJobs = global.fileDB.read('jobs');
     const jobIndex = allJobs.findIndex(j => j._id === req.params.id);

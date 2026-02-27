@@ -1,10 +1,14 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const Job = require('../models/Job');
 const Resume = require('../models/Resume');
 const Match = require('../models/Match');
 const User = require('../models/User');
 const { protect, authorize, hrOnly, adminOnly, hrOrAdmin } = require('../middleware/auth');
 const { asyncHandler } = require('../middleware/errorHandler');
+
+/** True when Mongoose has an active MongoDB connection */
+const isMongoConnected = () => mongoose.connection.readyState === 1;
 
 const router = express.Router();
 
@@ -20,14 +24,27 @@ router.get('/overview', authorize('hr', 'admin'), asyncHandler(async (req, res) 
   let totalJobs = 0, activeJobs = 0, totalResumes = 0, activeResumes = 0, totalMatches = 0, totalUsers = 0;
   let recentJobs = [], recentResumes = [], recentMatches = [], topMatches = [];
 
-  if (global.fileDB) {
+  if (isMongoConnected()) {
+    // MongoDB path
+    totalJobs = await Job.countDocuments();
+    activeJobs = await Job.countDocuments({ status: 'active' });
+    totalResumes = await Resume.countDocuments();
+    activeResumes = await Resume.countDocuments({ status: 'active' });
+    totalMatches = await Match.countDocuments();
+    totalUsers = await User.countDocuments();
+
+    recentJobs = await Job.find().sort({ createdAt: -1 }).limit(5).lean();
+    recentResumes = await Resume.find().sort({ createdAt: -1 }).limit(5)
+      .select('candidateName email status skills createdAt uploadedBy').lean();
+    recentMatches = await Match.find().sort({ createdAt: -1 }).limit(5).lean();
+    topMatches = await Match.find({ score: { $gte: 80 } }).sort({ score: -1 }).limit(10).lean();
+  } else if (global.fileDB) {
     // File-based database path
     const jobs = global.fileDB.read('jobs');
     const resumes = global.fileDB.read('resumes');
     const matches = global.fileDB.read('matches');
     const users = global.fileDB.read('users');
 
-    // Get counts
     totalJobs = jobs.length;
     activeJobs = jobs.filter(job => job.status === 'active').length;
     totalResumes = resumes.length;
@@ -35,78 +52,27 @@ router.get('/overview', authorize('hr', 'admin'), asyncHandler(async (req, res) 
     totalMatches = matches.length;
     totalUsers = users.length;
 
-    // Get recent activity
-    recentJobs = jobs
-      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-      .slice(0, 5)
-      .map(job => ({
-        ...job,
-        createdBy: users.find(u => u._id === job.createdBy) ? { name: users.find(u => u._id === job.createdBy).name } : null
-      }));
-
-    recentResumes = resumes
-      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-      .slice(0, 5)
-      .map(resume => ({
-        ...resume,
-        uploadedBy: users.find(u => u._id === resume.uploadedBy) ? { name: users.find(u => u._id === resume.uploadedBy).name } : null
-      }));
-
-    recentMatches = matches
-      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-      .slice(0, 5)
-      .map(match => ({
-        ...match,
-        jobId: jobs.find(j => j._id === match.jobId) ? { title: jobs.find(j => j._id === match.jobId).title } : null,
-        resumeId: resumes.find(r => r._id === match.resumeId) ? { candidateName: resumes.find(r => r._id === match.resumeId).candidateName, email: resumes.find(r => r._id === match.resumeId).email } : null
-      }));
-
-    // Get top matches (high scoring)
-    topMatches = matches
-      .filter(match => match.score >= 80)
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 10)
-      .map(match => ({
-        ...match,
-        jobId: jobs.find(j => j._id === match.jobId) ? { title: jobs.find(j => j._id === match.jobId).title, location: jobs.find(j => j._id === match.jobId).location } : null,
-        resumeId: resumes.find(r => r._id === match.resumeId) ? { candidateName: resumes.find(r => r._id === match.resumeId).candidateName, email: resumes.find(r => r._id === match.resumeId).email, skills: resumes.find(r => r._id === match.resumeId).skills } : null
-      }));
+    recentJobs = jobs.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 5);
+    recentResumes = resumes.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 5);
+    recentMatches = matches.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 5);
+    topMatches = matches.filter(m => m.score >= 80).sort((a, b) => b.score - a.score).slice(0, 10);
   } else {
-    // MongoDB path (original code)
-    [totalJobs, activeJobs, totalResumes, activeResumes, totalMatches, totalUsers] = await Promise.all([
-      Job.countDocuments(),
-      Job.countDocuments({ status: 'active' }),
-      Resume.countDocuments(),
-      Resume.countDocuments({ status: 'active' }),
-      Match.countDocuments(),
-      User.countDocuments()
-    ]);
+    // Memory store fallback
+    const jobs = global.jobs || [];
+    const resumes = global.resumes || [];
+    const matches = global.matches || [];
 
-    recentJobs = await Job.find()
-      .sort({ createdAt: -1 })
-      .limit(5)
-      .populate('createdBy', 'name')
-      .select('title location createdAt createdBy');
+    totalJobs = jobs.length;
+    activeJobs = jobs.filter(job => job.status === 'active').length;
+    totalResumes = resumes.length;
+    activeResumes = resumes.filter(resume => resume.status === 'active').length;
+    totalMatches = matches.length;
+    totalUsers = 0;
 
-    recentResumes = await Resume.find()
-      .sort({ createdAt: -1 })
-      .limit(5)
-      .populate('uploadedBy', 'name')
-      .select('candidateName email createdAt uploadedBy');
-
-    recentMatches = await Match.find()
-      .sort({ createdAt: -1 })
-      .limit(5)
-      .populate('jobId', 'title')
-      .populate('resumeId', 'candidateName email')
-      .select('score createdAt jobId resumeId');
-
-    topMatches = await Match.find({ score: { $gte: 80 } })
-      .sort({ score: -1, createdAt: -1 })
-      .limit(10)
-      .populate('jobId', 'title location')
-      .populate('resumeId', 'candidateName email skills')
-      .select('score breakdown jobId resumeId');
+    recentJobs = jobs.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 5);
+    recentResumes = resumes.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 5);
+    recentMatches = matches.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 5);
+    topMatches = matches.filter(m => m.score >= 80).sort((a, b) => b.score - a.score).slice(0, 10);
   }
 
   res.json({
@@ -140,131 +106,8 @@ router.get('/analytics', authorize('hr', 'admin'), asyncHandler(async (req, res)
   let jobTypeDistribution = [], departmentDistribution = [], skillDemand = [];
   let scoreDistribution = [], statusDistribution = [], experienceDistribution = [];
 
-  if (global.fileDB) {
-    // File-based database path
-    const jobs = global.fileDB.read('jobs');
-    const resumes = global.fileDB.read('resumes');
-    const matches = global.fileDB.read('matches');
-
-    const { period = '30' } = req.query;
-    const daysAgo = parseInt(period);
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - daysAgo);
-
-    // Job analytics - simplified for file-based DB
-    const recentJobs = jobs.filter(job => new Date(job.createdAt) >= startDate);
-    const jobCounts = {};
-    recentJobs.forEach(job => {
-      const date = new Date(job.createdAt).toDateString();
-      jobCounts[date] = (jobCounts[date] || 0) + 1;
-    });
-    jobAnalytics = Object.entries(jobCounts).map(([date, count]) => ({
-      _id: { date },
-      count
-    }));
-
-    // Resume analytics
-    const recentResumes = resumes.filter(resume => new Date(resume.createdAt) >= startDate);
-    const resumeCounts = {};
-    recentResumes.forEach(resume => {
-      const date = new Date(resume.createdAt).toDateString();
-      resumeCounts[date] = (resumeCounts[date] || 0) + 1;
-    });
-    resumeAnalytics = Object.entries(resumeCounts).map(([date, count]) => ({
-      _id: { date },
-      count
-    }));
-
-    // Match analytics
-    const recentMatches = matches.filter(match => new Date(match.createdAt) >= startDate);
-    const matchCounts = {};
-    recentMatches.forEach(match => {
-      const date = new Date(match.createdAt).toDateString();
-      matchCounts[date] = (matchCounts[date] || 0) + 1;
-    });
-    matchAnalytics = Object.entries(matchCounts).map(([date, count]) => ({
-      _id: { date },
-      count
-    }));
-
-    // Job type distribution
-    const jobTypeCounts = {};
-    jobs.forEach(job => {
-      jobTypeCounts[job.jobType || 'unknown'] = (jobTypeCounts[job.jobType || 'unknown'] || 0) + 1;
-    });
-    jobTypeDistribution = Object.entries(jobTypeCounts).map(([type, count]) => ({
-      _id: type,
-      count
-    }));
-
-    // Department distribution
-    const deptCounts = {};
-    jobs.forEach(job => {
-      const dept = job.department || 'unknown';
-      deptCounts[dept] = (deptCounts[dept] || 0) + 1;
-    });
-    departmentDistribution = Object.entries(deptCounts)
-      .map(([dept, count]) => ({ _id: dept, count }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 10);
-
-    // Skill demand analysis
-    const skillCounts = {};
-    jobs.forEach(job => {
-      if (job.requiredSkills) {
-        job.requiredSkills.forEach(skill => {
-          skillCounts[skill] = (skillCounts[skill] || 0) + 1;
-        });
-      }
-    });
-    skillDemand = Object.entries(skillCounts)
-      .map(([skill, count]) => ({ _id: skill, count }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 20);
-
-    // Match score distribution
-    const scoreBuckets = { '0-20': 0, '20-40': 0, '40-60': 0, '60-80': 0, '80-100': 0 };
-    matches.forEach(match => {
-      const score = match.score || 0;
-      if (score < 20) scoreBuckets['0-20']++;
-      else if (score < 40) scoreBuckets['20-40']++;
-      else if (score < 60) scoreBuckets['40-60']++;
-      else if (score < 80) scoreBuckets['60-80']++;
-      else scoreBuckets['80-100']++;
-    });
-    scoreDistribution = Object.entries(scoreBuckets).map(([range, count]) => ({
-      _id: range,
-      count
-    }));
-
-    // Status distribution
-    const statusCounts = {};
-    matches.forEach(match => {
-      const status = match.status || 'unknown';
-      statusCounts[status] = (statusCounts[status] || 0) + 1;
-    });
-    statusDistribution = Object.entries(statusCounts).map(([status, count]) => ({
-      _id: status,
-      count
-    }));
-
-    // Experience distribution
-    const expBuckets = { '0-1': 0, '1-3': 0, '3-5': 0, '5-10': 0, '10-20': 0, '20+': 0 };
-    resumes.filter(resume => resume.status === 'active').forEach(resume => {
-      const exp = resume.totalExperience || 0;
-      if (exp < 1) expBuckets['0-1']++;
-      else if (exp < 3) expBuckets['1-3']++;
-      else if (exp < 5) expBuckets['3-5']++;
-      else if (exp < 10) expBuckets['5-10']++;
-      else if (exp < 20) expBuckets['10-20']++;
-      else expBuckets['20+']++;
-    });
-    experienceDistribution = Object.entries(expBuckets).map(([range, count]) => ({
-      _id: range,
-      count
-    }));
-  } else {
-    // MongoDB path (original code)
+  if (isMongoConnected()) {
+    // MongoDB path
     const { period = '30' } = req.query;
     const daysAgo = parseInt(period);
     const startDate = new Date();
@@ -347,6 +190,120 @@ router.get('/analytics', authorize('hr', 'admin'), asyncHandler(async (req, res)
         }
       }
     ]);
+  } else if (global.fileDB) {
+    // File-based database path
+    const jobs = global.fileDB.read('jobs');
+    const resumes = global.fileDB.read('resumes');
+    const matches = global.fileDB.read('matches');
+
+    const { period = '30' } = req.query;
+    const daysAgo = parseInt(period);
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - daysAgo);
+
+    const recentJobs = jobs.filter(job => new Date(job.createdAt) >= startDate);
+    const jobCounts = {};
+    recentJobs.forEach(job => {
+      const date = new Date(job.createdAt).toDateString();
+      jobCounts[date] = (jobCounts[date] || 0) + 1;
+    });
+    jobAnalytics = Object.entries(jobCounts).map(([date, count]) => ({
+      _id: { date },
+      count
+    }));
+
+    const recentResumes = resumes.filter(resume => new Date(resume.createdAt) >= startDate);
+    const resumeCounts = {};
+    recentResumes.forEach(resume => {
+      const date = new Date(resume.createdAt).toDateString();
+      resumeCounts[date] = (resumeCounts[date] || 0) + 1;
+    });
+    resumeAnalytics = Object.entries(resumeCounts).map(([date, count]) => ({
+      _id: { date },
+      count
+    }));
+
+    const recentMatches = matches.filter(match => new Date(match.createdAt) >= startDate);
+    const matchCounts = {};
+    recentMatches.forEach(match => {
+      const date = new Date(match.createdAt).toDateString();
+      matchCounts[date] = (matchCounts[date] || 0) + 1;
+    });
+    matchAnalytics = Object.entries(matchCounts).map(([date, count]) => ({
+      _id: { date },
+      count
+    }));
+
+    const jobTypeCounts = {};
+    jobs.forEach(job => {
+      jobTypeCounts[job.jobType || 'unknown'] = (jobTypeCounts[job.jobType || 'unknown'] || 0) + 1;
+    });
+    jobTypeDistribution = Object.entries(jobTypeCounts).map(([type, count]) => ({
+      _id: type,
+      count
+    }));
+
+    const deptCounts = {};
+    jobs.forEach(job => {
+      const dept = job.department || 'unknown';
+      deptCounts[dept] = (deptCounts[dept] || 0) + 1;
+    });
+    departmentDistribution = Object.entries(deptCounts)
+      .map(([dept, count]) => ({ _id: dept, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10);
+
+    const skillCounts = {};
+    jobs.forEach(job => {
+      if (job.requiredSkills) {
+        job.requiredSkills.forEach(skill => {
+          skillCounts[skill] = (skillCounts[skill] || 0) + 1;
+        });
+      }
+    });
+    skillDemand = Object.entries(skillCounts)
+      .map(([skill, count]) => ({ _id: skill, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 20);
+
+    const scoreBuckets = { '0-20': 0, '20-40': 0, '40-60': 0, '60-80': 0, '80-100': 0 };
+    matches.forEach(match => {
+      const score = match.score || 0;
+      if (score < 20) scoreBuckets['0-20']++;
+      else if (score < 40) scoreBuckets['20-40']++;
+      else if (score < 60) scoreBuckets['40-60']++;
+      else if (score < 80) scoreBuckets['60-80']++;
+      else scoreBuckets['80-100']++;
+    });
+    scoreDistribution = Object.entries(scoreBuckets).map(([range, count]) => ({
+      _id: range,
+      count
+    }));
+
+    const statusCounts = {};
+    matches.forEach(match => {
+      const status = match.status || 'unknown';
+      statusCounts[status] = (statusCounts[status] || 0) + 1;
+    });
+    statusDistribution = Object.entries(statusCounts).map(([status, count]) => ({
+      _id: status,
+      count
+    }));
+
+    const expBuckets = { '0-1': 0, '1-3': 0, '3-5': 0, '5-10': 0, '10-20': 0, '20+': 0 };
+    resumes.filter(resume => resume.status === 'active').forEach(resume => {
+      const exp = resume.totalExperience || 0;
+      if (exp < 1) expBuckets['0-1']++;
+      else if (exp < 3) expBuckets['1-3']++;
+      else if (exp < 5) expBuckets['3-5']++;
+      else if (exp < 10) expBuckets['5-10']++;
+      else if (exp < 20) expBuckets['10-20']++;
+      else expBuckets['20+']++;
+    });
+    experienceDistribution = Object.entries(expBuckets).map(([range, count]) => ({
+      _id: range,
+      count
+    }));
   }
 
   res.json({
@@ -514,158 +471,103 @@ router.get('/performance', authorize('hr', 'admin'), asyncHandler(async (req, re
 router.get('/alerts', authorize('hr', 'admin'), asyncHandler(async (req, res) => {
   const alerts = [];
 
-  if (global.fileDB) {
+  if (isMongoConnected()) {
+    // MongoDB path
+    const jobsWithoutApplicants = await Job.countDocuments({
+      status: 'active',
+      createdAt: { $lte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
+    });
+
+    if (jobsWithoutApplicants > 0) {
+      alerts.push({
+        type: 'warning',
+        title: 'Jobs Without Applicants',
+        message: `${jobsWithoutApplicants} active jobs have no applicants`,
+        count: jobsWithoutApplicants
+      });
+    }
+
+    const highPriorityJobs = await Job.countDocuments({
+      status: 'active',
+      priority: { $in: ['high', 'urgent'] }
+    });
+
+    if (highPriorityJobs > 0) {
+      alerts.push({
+        type: 'info',
+        title: 'High Priority Jobs',
+        message: `${highPriorityJobs} high priority jobs need attention`,
+        count: highPriorityJobs
+      });
+    }
+
+    const pendingMatches = await Match.countDocuments({
+      status: 'pending',
+      createdAt: { $lte: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000) }
+    });
+
+    if (pendingMatches > 0) {
+      alerts.push({
+        type: 'warning',
+        title: 'Pending Matches',
+        message: `${pendingMatches} matches pending review`,
+        count: pendingMatches
+      });
+    }
+
+    const lowScoringMatches = await Match.countDocuments({
+      score: { $lt: 30 },
+      status: { $in: ['pending', 'reviewed'] }
+    });
+
+    if (lowScoringMatches > 0) {
+      alerts.push({
+        type: 'info',
+        title: 'Low Scoring Matches',
+        message: `${lowScoringMatches} matches with scores below 30%`,
+        count: lowScoringMatches
+      });
+    }
+
+    const newResumesThisWeek = await Resume.countDocuments({
+      createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
+    });
+
+    if (newResumesThisWeek > 0) {
+      alerts.push({
+        type: 'success',
+        title: 'New Resumes',
+        message: `${newResumesThisWeek} new resumes added this week`,
+        count: newResumesThisWeek
+      });
+    }
+  } else if (global.fileDB) {
     // File-based database path
     const jobs = global.fileDB.read('jobs');
     const resumes = global.fileDB.read('resumes');
     const matches = global.fileDB.read('matches');
 
-    // Jobs with no applicants (simplified for file-based DB)
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     const jobsWithoutApplicants = jobs.filter(job =>
-      job.status === 'active' &&
-      new Date(job.createdAt) <= sevenDaysAgo
+      job.status === 'active' && new Date(job.createdAt) <= sevenDaysAgo
     ).length;
-
     if (jobsWithoutApplicants > 0) {
-      alerts.push({
-        type: 'warning',
-        title: 'Jobs Without Applicants',
-        message: `${jobsWithoutApplicants} active jobs have no applicants`,
-        count: jobsWithoutApplicants
-      });
+      alerts.push({ type: 'warning', title: 'Jobs Without Applicants', message: `${jobsWithoutApplicants} active jobs have no applicants`, count: jobsWithoutApplicants });
     }
 
-    // High priority jobs
-    const highPriorityJobs = jobs.filter(job =>
-      job.status === 'active' &&
-      ['high', 'urgent'].includes(job.priority)
-    ).length;
-
+    const highPriorityJobs = jobs.filter(job => job.status === 'active' && ['high', 'urgent'].includes(job.priority)).length;
     if (highPriorityJobs > 0) {
-      alerts.push({
-        type: 'info',
-        title: 'High Priority Jobs',
-        message: `${highPriorityJobs} high priority jobs need attention`,
-        count: highPriorityJobs
-      });
+      alerts.push({ type: 'info', title: 'High Priority Jobs', message: `${highPriorityJobs} high priority jobs need attention`, count: highPriorityJobs });
     }
 
-    // Pending matches
-    const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
-    const pendingMatches = matches.filter(match =>
-      match.status === 'pending' &&
-      new Date(match.createdAt) <= threeDaysAgo
-    ).length;
-
+    const pendingMatches = matches.filter(match => match.status === 'pending' && new Date(match.createdAt) <= new Date(Date.now() - 3 * 24 * 60 * 60 * 1000)).length;
     if (pendingMatches > 0) {
-      alerts.push({
-        type: 'warning',
-        title: 'Pending Matches',
-        message: `${pendingMatches} matches pending review`,
-        count: pendingMatches
-      });
+      alerts.push({ type: 'warning', title: 'Pending Matches', message: `${pendingMatches} matches pending review`, count: pendingMatches });
     }
 
-    // Low scoring matches
-    const lowScoringMatches = matches.filter(match =>
-      (match.score || 0) < 30 &&
-      ['pending', 'reviewed'].includes(match.status)
-    ).length;
-
-    if (lowScoringMatches > 0) {
-      alerts.push({
-        type: 'info',
-        title: 'Low Scoring Matches',
-        message: `${lowScoringMatches} matches with scores below 30%`,
-        count: lowScoringMatches
-      });
-    }
-
-    // New resumes this week
-    const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    const newResumesThisWeek = resumes.filter(resume =>
-      new Date(resume.createdAt) >= oneWeekAgo
-    ).length;
-
+    const newResumesThisWeek = resumes.filter(resume => new Date(resume.createdAt) >= sevenDaysAgo).length;
     if (newResumesThisWeek > 0) {
-      alerts.push({
-        type: 'success',
-        title: 'New Resumes',
-        message: `${newResumesThisWeek} new resumes added this week`,
-        count: newResumesThisWeek
-      });
-    }
-  } else {
-    // MongoDB path (original code)
-    const jobsWithoutApplicants = await Job.find({
-      status: 'active',
-      applicants: { $size: 0 },
-      createdAt: { $lte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
-    }).countDocuments();
-
-    if (jobsWithoutApplicants > 0) {
-      alerts.push({
-        type: 'warning',
-        title: 'Jobs Without Applicants',
-        message: `${jobsWithoutApplicants} active jobs have no applicants`,
-        count: jobsWithoutApplicants
-      });
-    }
-
-    const highPriorityJobs = await Job.find({
-      status: 'active',
-      priority: { $in: ['high', 'urgent'] }
-    }).countDocuments();
-
-    if (highPriorityJobs > 0) {
-      alerts.push({
-        type: 'info',
-        title: 'High Priority Jobs',
-        message: `${highPriorityJobs} high priority jobs need attention`,
-        count: highPriorityJobs
-      });
-    }
-
-    const pendingMatches = await Match.find({
-      status: 'pending',
-      createdAt: { $lte: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000) }
-    }).countDocuments();
-
-    if (pendingMatches > 0) {
-      alerts.push({
-        type: 'warning',
-        title: 'Pending Matches',
-        message: `${pendingMatches} matches pending review`,
-        count: pendingMatches
-      });
-    }
-
-    const lowScoringMatches = await Match.find({
-      score: { $lt: 30 },
-      status: { $in: ['pending', 'reviewed'] }
-    }).countDocuments();
-
-    if (lowScoringMatches > 0) {
-      alerts.push({
-        type: 'info',
-        title: 'Low Scoring Matches',
-        message: `${lowScoringMatches} matches with scores below 30%`,
-        count: lowScoringMatches
-      });
-    }
-
-    const newResumesThisWeek = await Resume.find({
-      createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
-    }).countDocuments();
-
-    if (newResumesThisWeek > 0) {
-      alerts.push({
-        type: 'success',
-        title: 'New Resumes',
-        message: `${newResumesThisWeek} new resumes added this week`,
-        count: newResumesThisWeek
-      });
+      alerts.push({ type: 'success', title: 'New Resumes', message: `${newResumesThisWeek} new resumes added this week`, count: newResumesThisWeek });
     }
   }
 
@@ -746,9 +648,19 @@ router.get('/export', authorize('hr', 'admin'), asyncHandler(async (req, res) =>
 // Access: HR only
 // ─────────────────────────────────────────────────────────────────────────────
 router.get('/hr-summary', hrOnly, asyncHandler(async (req, res) => {
-  const jobs = global.fileDB ? global.fileDB.read('jobs') : [];
-  const resumes = global.fileDB ? global.fileDB.read('resumes') : [];
-  const matches = global.fileDB ? global.fileDB.read('matches') : [];
+  let jobs, resumes, matches;
+
+  if (isMongoConnected()) {
+    jobs = await Job.find().lean();
+    resumes = await Resume.find().lean();
+    matches = await Match.find().lean();
+  } else if (global.fileDB) {
+    jobs = global.fileDB.read('jobs');
+    resumes = global.fileDB.read('resumes');
+    matches = global.fileDB.read('matches');
+  } else {
+    jobs = []; resumes = []; matches = [];
+  }
 
   const openJobs = jobs.filter(j => j.status === 'active');
   const pendingMatches = matches.filter(m => m.status === 'pending');
@@ -782,10 +694,21 @@ router.get('/hr-summary', hrOnly, asyncHandler(async (req, res) => {
 // Access: Admin only
 // ─────────────────────────────────────────────────────────────────────────────
 router.get('/admin-summary', adminOnly, asyncHandler(async (req, res) => {
-  const users = global.fileDB ? global.fileDB.read('users') : (global.users || []);
-  const jobs = global.fileDB ? global.fileDB.read('jobs') : [];
-  const resumes = global.fileDB ? global.fileDB.read('resumes') : [];
-  const matches = global.fileDB ? global.fileDB.read('matches') : [];
+  let users, jobs, resumes, matches;
+
+  if (isMongoConnected()) {
+    users = await User.find().lean();
+    jobs = await Job.find().lean();
+    resumes = await Resume.find().lean();
+    matches = await Match.find().lean();
+  } else if (global.fileDB) {
+    users = global.fileDB.read('users');
+    jobs = global.fileDB.read('jobs');
+    resumes = global.fileDB.read('resumes');
+    matches = global.fileDB.read('matches');
+  } else {
+    users = []; jobs = []; resumes = []; matches = [];
+  }
 
   const avgScore = matches.length
     ? Math.round(matches.reduce((s, m) => s + (m.score || 0), 0) / matches.length)
@@ -796,7 +719,7 @@ router.get('/admin-summary', adminOnly, asyncHandler(async (req, res) => {
     data: {
       role: 'admin',
       systemHealth: {
-        databaseMode: global.fileDB ? 'file-based' : 'mongodb',
+        databaseMode: isMongoConnected() ? 'mongodb' : (global.fileDB ? 'file-based' : 'memory'),
         serverTime: new Date().toISOString()
       },
       users: {
