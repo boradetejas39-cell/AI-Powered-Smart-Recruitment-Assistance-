@@ -2,17 +2,12 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import {
   ChartBarIcon,
-  TrendingUpIcon,
   UserGroupIcon,
   DocumentTextIcon,
   BriefcaseIcon,
   ArrowTrendingUpIcon,
-  ArrowTrendingDownIcon,
-  CalendarIcon
 } from '@heroicons/react/24/outline';
 import {
-  LineChart,
-  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -36,6 +31,7 @@ const Analytics = () => {
   useEffect(() => {
     fetchAnalytics();
     fetchPerformance();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeRange]);
 
   const fetchAnalytics = async () => {
@@ -303,7 +299,7 @@ const Analytics = () => {
               </div>
               <div className="text-sm text-gray-500">Average Time to Hire</div>
               <div className="text-xs text-gray-400 mt-1">
-                Min: {performance?.timeToHire?.minTimeToHire?.toFixed(1) || '0'} days | 
+                Min: {performance?.timeToHire?.minTimeToHire?.toFixed(1) || '0'} days |
                 Max: {performance?.timeToHire?.maxTimeToHire?.toFixed(1) || '0'} days
               </div>
             </div>

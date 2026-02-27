@@ -31,7 +31,7 @@ const CurrencyDemo = () => {
       <div className="card">
         <div className="card-body">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Currency Display Examples</h2>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div className="space-y-3">
               <h3 className="font-medium text-gray-700">INR Examples</h3>
@@ -85,7 +85,7 @@ const CurrencyDemo = () => {
       <div className="card">
         <div className="card-body">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Salary Range Examples</h2>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-3">
               <h3 className="font-medium text-gray-700">Indian Market Salaries</h3>
@@ -118,18 +118,18 @@ const CurrencyDemo = () => {
       <div className="card">
         <div className="card-body">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Interactive Salary Input</h2>
-          
+
           <div className="space-y-6">
             <SalaryRangeInput
               salary={salary}
               onChange={setSalary}
             />
-            
+
             <div className="p-4 bg-blue-50 rounded-lg">
               <h3 className="font-medium text-blue-900 mb-2">Current Salary Range:</h3>
-              <SalaryRangeDisplay 
-                salary={salary} 
-                showCode={true} 
+              <SalaryRangeDisplay
+                salary={salary}
+                showCode={true}
                 showDecimals={false}
                 className="text-lg font-semibold text-blue-900"
               />
@@ -138,11 +138,11 @@ const CurrencyDemo = () => {
         </div>
       </div>
 
-      /* Currency Converter Demo */
+      {/* Currency Converter Demo */}
       <div className="card">
         <div className="card-body">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Amount Display Demo</h2>
-          
+
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-4">
@@ -159,7 +159,7 @@ const CurrencyDemo = () => {
                     step="10000"
                   />
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Currency
@@ -177,7 +177,7 @@ const CurrencyDemo = () => {
                   </select>
                 </div>
               </div>
-              
+
               <div className="space-y-3">
                 <h3 className="font-medium text-gray-700">Display Formats:</h3>
                 <div className="space-y-2">
@@ -208,7 +208,7 @@ const CurrencyDemo = () => {
       <div className="card">
         <div className="card-body">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Supported Currencies</h2>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="p-4 border border-gray-200 rounded-lg">
               <div className="flex items-center justify-between">

@@ -5,15 +5,13 @@ import {
   BriefcaseIcon,
   DocumentTextIcon,
   UserGroupIcon,
-  ChartBarIcon,
-  ArrowTrendingUpIcon,
   ClockIcon,
   CheckCircleIcon,
   ExclamationTriangleIcon,
   ArrowRightIcon,
   PlusIcon
 } from '@heroicons/react/24/outline';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { Card, CardHeader, CardBody, StatCard } from '../../components/UI/Card';
 import { Button } from '../../components/UI/Button';
 
@@ -321,14 +319,14 @@ const Dashboard = () => {
                       </td>
                       <td className="px-4 py-3 text-center">
                         <span className={`text-sm font-semibold ${item.avgScore >= 70 ? 'text-green-600' :
-                            item.avgScore >= 40 ? 'text-yellow-600' : 'text-red-500'
+                          item.avgScore >= 40 ? 'text-yellow-600' : 'text-red-500'
                           }`}>
                           {item.avgScore}%
                         </span>
                       </td>
                       <td className="px-4 py-3 text-center">
                         <span className={`text-sm font-semibold ${item.topScore >= 70 ? 'text-green-600' :
-                            item.topScore >= 40 ? 'text-yellow-600' : 'text-red-500'
+                          item.topScore >= 40 ? 'text-yellow-600' : 'text-red-500'
                           }`}>
                           {item.topScore}%
                         </span>
