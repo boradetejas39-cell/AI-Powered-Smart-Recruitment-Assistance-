@@ -6,7 +6,7 @@ const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 const connectDB = require('./utils/db');
 
-// Import routes
+// Import legacy (v1) routes
 const authRoutes = require('./routes/auth');
 const jobRoutes = require('./routes/jobs');
 const resumeRoutes = require('./routes/resumes');
@@ -14,6 +14,20 @@ const matchRoutes = require('./routes/matches');
 const dashboardRoutes = require('./routes/dashboard');
 const adminRoutes = require('./routes/admin');
 const jobStatusService = require('./services/jobStatusService');
+
+// Import v2 routes (production MVC)
+const v2AuthRoutes = require('./routes/v2/auth');
+const v2JobRoutes = require('./routes/v2/jobs');
+const v2ApplicationRoutes = require('./routes/v2/applications');
+const v2InterviewRoutes = require('./routes/v2/interviews');
+const v2PipelineRoutes = require('./routes/v2/pipeline');
+const v2AnalyticsRoutes = require('./routes/v2/analytics');
+const v2NotificationRoutes = require('./routes/v2/notifications');
+const v2AdminRoutes = require('./routes/v2/admin');
+
+// Import production middleware & utils
+const logger = require('./utils/logger');
+const sanitize = require('./middleware/sanitize');
 
 // Initialize Express app
 const app = express();
@@ -24,13 +38,16 @@ app.use((req, res, next) => {
   next();
 });
 
+// Structured request logging (production)
+app.use(logger.requestLogger);
+
 // Security middleware
 app.use(helmet());
 
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // limit each IP to 100 requests per windowMs
+  max: process.env.NODE_ENV === 'production' ? 100 : 1000 // generous limit in dev
 });
 app.use(limiter);
 
@@ -46,15 +63,29 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// Input sanitization (XSS protection)
+app.use(sanitize);
+
 // Static files
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-// Routes (register early so they're available regardless of DB timing)
+
+// ── Legacy (v1) Routes ──────────────────────────────────────────
 app.use('/api/auth', authRoutes);
 app.use('/api/jobs', jobRoutes);
 app.use('/api/resumes', resumeRoutes);
 app.use('/api/matches', matchRoutes);
 app.use('/api/dashboard', dashboardRoutes);
-app.use('/api/admin', adminRoutes);         // 🔒 Admin-only routes
+app.use('/api/admin', adminRoutes);
+
+// ── V2 Production Routes (MVC) ─────────────────────────────────
+app.use('/api/v2/auth', v2AuthRoutes);
+app.use('/api/v2/jobs', v2JobRoutes);
+app.use('/api/v2/applications', v2ApplicationRoutes);
+app.use('/api/v2/interviews', v2InterviewRoutes);
+app.use('/api/v2/pipeline', v2PipelineRoutes);
+app.use('/api/v2/analytics', v2AnalyticsRoutes);
+app.use('/api/v2/notifications', v2NotificationRoutes);
+app.use('/api/v2/admin', v2AdminRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

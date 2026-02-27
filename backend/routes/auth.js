@@ -32,8 +32,8 @@ router.post('/register', [
     .withMessage('Password must be at least 6 characters long'),
   body('role')
     .optional()
-    .isIn(['admin', 'hr'])
-    .withMessage('Role must be either admin or hr')
+    .isIn(['admin', 'hr', 'recruiter', 'user'])
+    .withMessage('Role must be admin, hr, recruiter, or user')
 ], async (req, res) => {
   try {
     // Check for validation errors
@@ -46,7 +46,7 @@ router.post('/register', [
       });
     }
 
-    const { name, email, password, role = 'hr', company } = req.body;
+    const { name, email, password, role = 'user', company } = req.body;
 
     // Check if user already exists (using the same store that login uses)
     const existingUser = await memoryStore.findOne({ email });

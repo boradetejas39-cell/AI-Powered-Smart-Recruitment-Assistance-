@@ -6,7 +6,9 @@ const memoryStore = require('../utils/memoryStore');
 // ─────────────────────────────────────────────────────────────────────────────
 const ROLES = {
   ADMIN: 'admin',
-  HR: 'hr'
+  HR: 'hr',
+  RECRUITER: 'recruiter',
+  USER: 'user'
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -17,7 +19,7 @@ async function getUserById(id) {
     // Try memory store first
     const user = await memoryStore.findById(id);
     if (user) return user;
-    
+
     // Fall back to file-based database
     const users = global.fileDB ? global.fileDB.read('users') : (global.users || []);
     return users.find(u => u._id.toString() === id) || null;
@@ -63,6 +65,11 @@ const protect = async (req, res, next) => {
 
     if (!user.isActive) {
       return res.status(401).json({ success: false, message: 'Your account has been deactivated. Please contact the administrator.' });
+    }
+
+    // Check if user is blocked
+    if (user.isBlocked) {
+      return res.status(403).json({ success: false, message: 'Your account has been blocked. Reason: ' + (user.blockedReason || 'Contact administrator.') });
     }
 
     req.user = user;
@@ -115,8 +122,11 @@ const adminOnly = authorize(ROLES.ADMIN);
 /** Only HR — daily recruitment operations */
 const hrOnly = authorize(ROLES.HR);
 
-/** Both HR and Admin — shared operational features */
-const hrOrAdmin = authorize(ROLES.HR, ROLES.ADMIN);
+/** Only Recruiter */
+const recruiterOnly = authorize(ROLES.RECRUITER);
+
+/** HR, Recruiter, or Admin — shared operational features */
+const hrOrAdmin = authorize(ROLES.HR, ROLES.ADMIN, ROLES.RECRUITER);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // checkOwnership  — user must own the resource OR be an admin
@@ -177,6 +187,7 @@ module.exports = {
   authorize,
   adminOnly,
   hrOnly,
+  recruiterOnly,
   hrOrAdmin,
   checkOwnership,
   optionalAuth
