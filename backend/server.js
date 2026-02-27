@@ -3,7 +3,11 @@ const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
+// Load .env: try backend/.env first, then root .env (for Render vs local dev)
+const fs = require('fs');
+const localEnv = path.join(__dirname, '.env');
+const rootEnv = path.join(__dirname, '..', '.env');
+require('dotenv').config({ path: fs.existsSync(localEnv) ? localEnv : rootEnv });
 const connectDB = require('./utils/db');
 
 // Import legacy (v1) routes
@@ -52,11 +56,19 @@ const limiter = rateLimit({
 app.use(limiter);
 
 // CORS configuration
+const allowedOrigins = process.env.NODE_ENV === 'production'
+  ? [
+    process.env.FRONTEND_URL || 'https://ai-recruiter.vercel.app',
+    // Add any additional Vercel preview URLs
+    ...(process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : [])
+  ].filter(Boolean)
+  : ['http://localhost:3000', 'http://localhost:3001', 'http://127.0.0.1:3000', 'http://127.0.0.1:3001'];
+
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production'
-    ? ['https://your-production-domain.com']
-    : ['http://localhost:3000', 'http://localhost:3001', 'http://127.0.0.1:3000', 'http://127.0.0.1:3001'],
-  credentials: true
+  origin: allowedOrigins,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 // Body parsing middleware
@@ -139,17 +151,8 @@ app.get('/api/jobs/:id/status', async (req, res) => {
   }
 });
 
-// Serve static assets in production (must come before 404 handler)
-if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, '..', 'client', 'build')));
-  // Catch-all: serve React app for non-API routes only
-  app.get('*', (req, res) => {
-    if (req.originalUrl.startsWith('/api')) {
-      return res.status(404).json({ success: false, message: 'API route not found' });
-    }
-    res.sendFile(path.join(__dirname, '..', 'client', 'build', 'index.html'));
-  });
-}
+// NOTE: Frontend is deployed separately on Vercel.
+// No static file serving needed here — backend is API-only on Render.
 
 // Error handling middleware
 app.use((err, req, res, next) => {

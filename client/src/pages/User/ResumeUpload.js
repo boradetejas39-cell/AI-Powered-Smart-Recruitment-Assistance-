@@ -25,13 +25,13 @@ const UserResumeUpload = () => {
         setError('Please upload a PDF or Word document');
         return;
       }
-      
+
       // Validate file size (10MB max)
       if (selectedFile.size > 10 * 1024 * 1024) {
         setError('File size must be less than 10MB');
         return;
       }
-      
+
       setFile(selectedFile);
       setError(null);
     }
@@ -39,7 +39,7 @@ const UserResumeUpload = () => {
 
   const handleUpload = async (e) => {
     e.preventDefault();
-    
+
     if (!file) {
       setError('Please select a file to upload');
       return;
@@ -54,16 +54,14 @@ const UserResumeUpload = () => {
       formData.append('resume', file);
 
       const response = await api.post('/resumes/user-upload', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+        timeout: 60000,
       });
 
       setUploadResult(response.data.data);
       setFile(null);
       // Reset file input
       e.target.reset();
-      
+
     } catch (error) {
       console.error('Upload error:', error);
       setError(error.response?.data?.message || 'Upload failed. Please try again.');

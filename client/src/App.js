@@ -1,8 +1,11 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AuthProvider } from './contexts/AuthContext';
 import { useAuth } from './contexts/AuthContext';
 import { LoadingSpinner } from './components/UI';
+
+const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID || '';
 
 // Layout Components
 import Layout from './components/Layout/Layout';
@@ -46,6 +49,16 @@ import UserJobApply from './pages/User/JobApply';
 
 // Settings Pages
 import Settings from './pages/Settings/Settings';
+
+// V2 Feature Pages
+import ApplicationList from './pages/Applications/ApplicationList';
+import ApplicationDetail from './pages/Applications/ApplicationDetail';
+import InterviewList from './pages/Interviews/InterviewList';
+import InterviewDetail from './pages/Interviews/InterviewDetail';
+import PipelineBoard from './pages/Pipeline/PipelineBoard';
+import AnalyticsV2 from './pages/Analytics/AnalyticsV2';
+import AdminPanel from './pages/Admin/AdminPanel';
+import NotificationList from './pages/Notifications/NotificationList';
 
 // Component Showcase
 import ComponentShowcase from './pages/ComponentShowcase';
@@ -91,63 +104,85 @@ const PublicRoute = ({ children }) => {
 
 function App() {
   return (
-    <AuthProvider>
-      <Router>
-        <div className="App">
-          <Routes>
-            {/* Public Routes */}
-            <Route path="/" element={<Home />} />
-            <Route path="/showcase" element={<ComponentShowcase />} />
-            <Route path="/login" element={<PublicRoute><AuthLayout><Login /></AuthLayout></PublicRoute>} />
-            <Route path="/register" element={<PublicRoute><AuthLayout><Register /></AuthLayout></PublicRoute>} />
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+      <AuthProvider>
+        <Router>
+          <div className="App">
+            <Routes>
+              {/* Public Routes */}
+              <Route path="/" element={<Home />} />
+              <Route path="/showcase" element={<ComponentShowcase />} />
+              <Route path="/login" element={<PublicRoute><AuthLayout><Login /></AuthLayout></PublicRoute>} />
+              <Route path="/register" element={<PublicRoute><AuthLayout><Register /></AuthLayout></PublicRoute>} />
 
-            {/* Protected Routes */}
-            <Route path="/app" element={
-              <ProtectedRoute>
-                <Layout />
-              </ProtectedRoute>
-            }>
-              {/* Dashboard */}
-              <Route index element={<Navigate to="/app/dashboard" replace />} />
-              <Route path="dashboard" element={<Dashboard />} />
-              <Route path="analytics" element={<Analytics />} />
-              <Route path="currency-demo" element={<CurrencyDemo />} />
+              {/* Protected Routes */}
+              <Route path="/app" element={
+                <ProtectedRoute>
+                  <Layout />
+                </ProtectedRoute>
+              }>
+                {/* Dashboard */}
+                <Route index element={<Navigate to="/app/dashboard" replace />} />
+                <Route path="dashboard" element={<Dashboard />} />
+                <Route path="analytics" element={<Analytics />} />
+                <Route path="currency-demo" element={<CurrencyDemo />} />
 
-              {/* Jobs */}
-              <Route path="jobs" element={<JobList />} />
-              <Route path="jobs/new" element={<JobCreate />} />
-              <Route path="jobs/:id" element={<JobDetail />} />
-              <Route path="jobs/:id/edit" element={<JobEdit />} />
+                {/* Jobs */}
+                <Route path="jobs" element={<JobList />} />
+                <Route path="jobs/new" element={<JobCreate />} />
+                <Route path="jobs/:id" element={<JobDetail />} />
+                <Route path="jobs/:id/edit" element={<JobEdit />} />
 
-              {/* Resumes */}
-              <Route path="resumes" element={<ResumeList />} />
-              <Route path="resumes/upload" element={<ResumeUpload />} />
-              <Route path="resumes/:id" element={<ResumeDetail />} />
-              <Route path="resumes/:id/edit" element={<ResumeEdit />} />
+                {/* Resumes */}
+                <Route path="resumes" element={<ResumeList />} />
+                <Route path="resumes/upload" element={<ResumeUpload />} />
+                <Route path="resumes/:id" element={<ResumeDetail />} />
+                <Route path="resumes/:id/edit" element={<ResumeEdit />} />
 
-              {/* Matches */}
-              <Route path="matches" element={<MatchList />} />
-              <Route path="matches/:id" element={<MatchDetail />} />
-              <Route path="jobs/:jobId/matches" element={<MatchResults />} />
+                {/* Matches */}
+                <Route path="matches" element={<MatchList />} />
+                <Route path="matches/:id" element={<MatchDetail />} />
+                <Route path="jobs/:jobId/matches" element={<MatchResults />} />
 
-              {/* Profile & Settings */}
-              <Route path="profile" element={<Profile />} />
-              <Route path="settings" element={<Settings />} />
+                {/* Applications */}
+                <Route path="applications" element={<ApplicationList />} />
+                <Route path="applications/:id" element={<ApplicationDetail />} />
 
-              {/* User Routes */}
-              <Route path="user/dashboard" element={<UserDashboard />} />
-              <Route path="user/resumes/upload" element={<UserResumeUpload />} />
-              <Route path="user/jobs" element={<UserJobList />} />
-              <Route path="user/apply/:jobId" element={<UserJobApply />} />
-            </Route>
+                {/* Interviews */}
+                <Route path="interviews" element={<InterviewList />} />
+                <Route path="interviews/:id" element={<InterviewDetail />} />
 
-            {/* 404 Fallback - More specific */}
-            <Route path="/app/*" element={<Navigate to="/app/dashboard" replace />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </div>
-      </Router>
-    </AuthProvider>
+                {/* Pipeline */}
+                <Route path="pipeline" element={<PipelineBoard />} />
+
+                {/* Advanced Analytics */}
+                <Route path="analytics-v2" element={<AnalyticsV2 />} />
+
+                {/* Admin */}
+                <Route path="admin" element={<AdminPanel />} />
+
+                {/* Notifications */}
+                <Route path="notifications" element={<NotificationList />} />
+
+                {/* Profile & Settings */}
+                <Route path="profile" element={<Profile />} />
+                <Route path="settings" element={<Settings />} />
+
+                {/* User Routes */}
+                <Route path="user/dashboard" element={<UserDashboard />} />
+                <Route path="user/resumes/upload" element={<UserResumeUpload />} />
+                <Route path="user/jobs" element={<UserJobList />} />
+                <Route path="user/apply/:jobId" element={<UserJobApply />} />
+              </Route>
+
+              {/* 404 Fallback - More specific */}
+              <Route path="/app/*" element={<Navigate to="/app/dashboard" replace />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </div>
+        </Router>
+      </AuthProvider>
+    </GoogleOAuthProvider>
   );
 }
 

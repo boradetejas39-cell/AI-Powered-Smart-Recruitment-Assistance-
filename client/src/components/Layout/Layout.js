@@ -13,7 +13,12 @@ import {
   Bars3Icon,
   XMarkIcon,
   BellIcon,
-  ChevronDownIcon
+  ChevronDownIcon,
+  DocumentCheckIcon,
+  ChatBubbleLeftRightIcon,
+  FunnelIcon,
+  ShieldCheckIcon,
+  PresentationChartLineIcon,
 } from '@heroicons/react/24/outline';
 
 const Layout = () => {
@@ -38,13 +43,58 @@ const Layout = () => {
     };
   }, []);
 
-  const navigation = [
-    { name: 'Dashboard', href: '/app/dashboard', icon: HomeIcon },
-    { name: 'Analytics', href: '/app/analytics', icon: ChartBarIcon },
-    { name: 'Jobs', href: '/app/jobs', icon: BriefcaseIcon },
-    { name: 'Resumes', href: '/app/resumes', icon: DocumentTextIcon },
-    { name: 'Matches', href: '/app/matches', icon: UserGroupIcon },
-  ];
+  const isRecruiter = user?.role === 'recruiter';
+  const isUser = user?.role === 'user';
+
+  // Role-based navigation
+  const getNavigation = () => {
+    // Job Seeker (user role) - simplified view
+    if (isUser) {
+      return [
+        { name: 'Dashboard', href: '/app/user/dashboard', icon: HomeIcon },
+        { name: 'Browse Jobs', href: '/app/user/jobs', icon: BriefcaseIcon },
+        { name: 'My Resumes', href: '/app/user/resumes/upload', icon: DocumentTextIcon },
+        { name: 'Applications', href: '/app/applications', icon: DocumentCheckIcon },
+        { name: 'Interviews', href: '/app/interviews', icon: ChatBubbleLeftRightIcon },
+        { name: 'Notifications', href: '/app/notifications', icon: BellIcon },
+      ];
+    }
+
+    // Recruiter - pipeline focused
+    if (isRecruiter) {
+      return [
+        { name: 'Dashboard', href: '/app/dashboard', icon: HomeIcon },
+        { name: 'Jobs', href: '/app/jobs', icon: BriefcaseIcon },
+        { name: 'Applications', href: '/app/applications', icon: DocumentCheckIcon },
+        { name: 'Interviews', href: '/app/interviews', icon: ChatBubbleLeftRightIcon },
+        { name: 'Pipeline', href: '/app/pipeline', icon: FunnelIcon },
+        { name: 'Resumes', href: '/app/resumes', icon: DocumentTextIcon },
+        { name: 'Matches', href: '/app/matches', icon: UserGroupIcon },
+        { name: 'Analytics', href: '/app/analytics-v2', icon: PresentationChartLineIcon },
+        { name: 'Notifications', href: '/app/notifications', icon: BellIcon },
+      ];
+    }
+
+    // HR / Admin - full access
+    const items = [
+      { name: 'Dashboard', href: '/app/dashboard', icon: HomeIcon },
+      { name: 'Analytics', href: '/app/analytics', icon: ChartBarIcon },
+      { name: 'Jobs', href: '/app/jobs', icon: BriefcaseIcon },
+      { name: 'Resumes', href: '/app/resumes', icon: DocumentTextIcon },
+      { name: 'Matches', href: '/app/matches', icon: UserGroupIcon },
+      { name: 'Applications', href: '/app/applications', icon: DocumentCheckIcon },
+      { name: 'Interviews', href: '/app/interviews', icon: ChatBubbleLeftRightIcon },
+      { name: 'Pipeline', href: '/app/pipeline', icon: FunnelIcon },
+      { name: 'Analytics V2', href: '/app/analytics-v2', icon: PresentationChartLineIcon },
+      { name: 'Notifications', href: '/app/notifications', icon: BellIcon },
+    ];
+    if (isAdmin) {
+      items.push({ name: 'Admin Panel', href: '/app/admin', icon: ShieldCheckIcon });
+    }
+    return items;
+  };
+
+  const navigation = getNavigation();
 
   const userNavigation = [
     { name: 'Your Profile', href: '/app/profile', icon: UserIcon },
@@ -98,8 +148,8 @@ const Layout = () => {
                   key={item.name}
                   to={item.href}
                   className={`flex items-center px-4 py-3 rounded-lg transition-all ${active
-                      ? 'bg-primary-600 text-white shadow-lg'
-                      : 'text-gray-300 hover:bg-slate-700'
+                    ? 'bg-primary-600 text-white shadow-lg'
+                    : 'text-gray-300 hover:bg-slate-700'
                     }`}
                   onClick={() => setSidebarOpen(false)}
                 >
@@ -174,8 +224,8 @@ const Layout = () => {
                 key={item.name}
                 to={item.href}
                 className={`flex items-center px-4 py-3 rounded-lg transition-all ${active
-                    ? 'bg-primary-600 text-white shadow-lg shadow-primary-600/50'
-                    : 'text-gray-300 hover:bg-slate-700'
+                  ? 'bg-primary-600 text-white shadow-lg shadow-primary-600/50'
+                  : 'text-gray-300 hover:bg-slate-700'
                   }`}
               >
                 <Icon className="h-5 w-5 mr-3" />
@@ -199,7 +249,7 @@ const Layout = () => {
               <p className="text-xs text-gray-400 capitalize">{user?.role}</p>
             </div>
           </div>
-          
+
           {/* Mobile navigation options */}
           <div className="space-y-1">
             <Link
@@ -249,12 +299,9 @@ const Layout = () => {
 
             <div className="flex items-center space-x-6">
               {/* Notifications */}
-              <button className="text-gray-400 hover:text-gray-600 relative transition-colors group">
+              <Link to="/app/notifications" className="text-gray-400 hover:text-gray-600 relative transition-colors group">
                 <BellIcon className="h-6 w-6" />
-                <span className="absolute -top-1 -right-1 h-5 w-5 bg-gradient-to-br from-red-500 to-red-600 rounded-full text-xs text-white flex items-center justify-center font-bold shadow-lg">
-                  3
-                </span>
-              </button>
+              </Link>
 
               {/* Divider */}
               <div className="h-6 w-px bg-gray-200" />

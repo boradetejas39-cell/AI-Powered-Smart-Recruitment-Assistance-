@@ -38,7 +38,7 @@ const authReducer = (state, action) => {
         loading: true,
         error: null
       };
-    
+
     case AUTH_ACTIONS.LOGIN_SUCCESS:
     case AUTH_ACTIONS.REGISTER_SUCCESS:
       return {
@@ -49,7 +49,7 @@ const authReducer = (state, action) => {
         loading: false,
         error: null
       };
-    
+
     case AUTH_ACTIONS.LOAD_USER_SUCCESS:
       return {
         ...state,
@@ -58,7 +58,7 @@ const authReducer = (state, action) => {
         loading: false,
         error: null
       };
-    
+
     case AUTH_ACTIONS.LOGIN_FAILURE:
     case AUTH_ACTIONS.REGISTER_FAILURE:
     case AUTH_ACTIONS.LOAD_USER_FAILURE:
@@ -70,7 +70,7 @@ const authReducer = (state, action) => {
         loading: false,
         error: action.payload
       };
-    
+
     case AUTH_ACTIONS.LOGOUT:
       return {
         ...state,
@@ -80,19 +80,19 @@ const authReducer = (state, action) => {
         loading: false,
         error: null
       };
-    
+
     case AUTH_ACTIONS.UPDATE_PROFILE:
       return {
         ...state,
         user: { ...state.user, ...action.payload }
       };
-    
+
     case AUTH_ACTIONS.CLEAR_ERROR:
       return {
         ...state,
         error: null
       };
-    
+
     default:
       return state;
   }
@@ -122,7 +122,7 @@ export const AuthProvider = ({ children }) => {
         try {
           dispatch({ type: AUTH_ACTIONS.LOAD_USER_START });
           const response = await api.get('/auth/me');
-          
+
           dispatch({
             type: AUTH_ACTIONS.LOAD_USER_SUCCESS,
             payload: { user: response.data.data.user }
@@ -146,17 +146,17 @@ export const AuthProvider = ({ children }) => {
   const login = async (credentials) => {
     try {
       dispatch({ type: AUTH_ACTIONS.LOGIN_START });
-      
+
       const response = await api.post('/auth/login', credentials);
       const { token, user } = response.data.data;
-      
+
       localStorage.setItem('token', token);
-      
+
       dispatch({
         type: AUTH_ACTIONS.LOGIN_SUCCESS,
         payload: { token, user }
       });
-      
+
       toast.success('Login successful!');
       return { success: true };
     } catch (error) {
@@ -174,23 +174,58 @@ export const AuthProvider = ({ children }) => {
   const register = async (userData) => {
     try {
       dispatch({ type: AUTH_ACTIONS.REGISTER_START });
-      
+
       const response = await api.post('/auth/register', userData);
       const { token, user } = response.data.data;
-      
+
       localStorage.setItem('token', token);
-      
+
       dispatch({
         type: AUTH_ACTIONS.REGISTER_SUCCESS,
         payload: { token, user }
       });
-      
+
       toast.success('Registration successful!');
       return { success: true };
     } catch (error) {
       const message = error.response?.data?.message || 'Registration failed';
       dispatch({
         type: AUTH_ACTIONS.REGISTER_FAILURE,
+        payload: message
+      });
+      toast.error(message);
+      return { success: false, error: message };
+    }
+  };
+
+  // Google login function — supports both credential (ID token) and access_token flows
+  const googleLogin = async (credentialOrToken, role, tokenType = 'credential') => {
+    try {
+      dispatch({ type: AUTH_ACTIONS.LOGIN_START });
+
+      const body = { role };
+      if (tokenType === 'access_token') {
+        body.access_token = credentialOrToken;
+      } else {
+        body.credential = credentialOrToken;
+      }
+
+      const response = await api.post('/auth/google', body);
+      const { token, user } = response.data.data;
+
+      localStorage.setItem('token', token);
+
+      dispatch({
+        type: AUTH_ACTIONS.LOGIN_SUCCESS,
+        payload: { token, user }
+      });
+
+      toast.success(`Welcome, ${user.name}!`);
+      return { success: true };
+    } catch (error) {
+      const message = error.response?.data?.message || 'Google authentication failed';
+      dispatch({
+        type: AUTH_ACTIONS.LOGIN_FAILURE,
         payload: message
       });
       toast.error(message);
@@ -215,12 +250,12 @@ export const AuthProvider = ({ children }) => {
   const updateProfile = async (profileData) => {
     try {
       const response = await api.put('/auth/profile', profileData);
-      
+
       dispatch({
         type: AUTH_ACTIONS.UPDATE_PROFILE,
         payload: response.data.data.user
       });
-      
+
       toast.success('Profile updated successfully!');
       return { success: true };
     } catch (error) {
@@ -272,6 +307,7 @@ export const AuthProvider = ({ children }) => {
     ...state,
     login,
     register,
+    googleLogin,
     logout,
     updateProfile,
     changePassword,

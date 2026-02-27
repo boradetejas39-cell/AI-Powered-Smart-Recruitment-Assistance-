@@ -1,32 +1,20 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "backend/server.js",
-      "use": "@vercel/node"
-    },
-    {
-      "src": "client/package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "installCommand": "npm install",
-        "buildCommand": "npm run build",
-        "outputDirectory": "build"
-      }
-    }
-  ],
+  "buildCommand": "npm run build",
+  "outputDirectory": "build",
+  "framework": "create-react-app",
   "routes": [
     {
-      "src": "/api/(.*)",
-      "dest": "backend/server.js"
+      "src": "/static/(.*)",
+      "dest": "/static/$1"
+    },
+    {
+      "src": "/manifest.json",
+      "dest": "/manifest.json"
     },
     {
       "src": "/(.*)",
-      "dest": "client/build/$1"
+      "dest": "/index.html"
     }
-  ],
-  "env": {
-    "NODE_ENV": "production",
-    "PORT": "3000"
-  }
+  ]
 }

@@ -4,8 +4,12 @@ const { body, validationResult } = require('express-validator');
 const { protect } = require('../middleware/auth');
 const memoryStore = require('../utils/memoryStore');
 const bcrypt = require('bcryptjs');
+const { OAuth2Client } = require('google-auth-library');
 
 const router = express.Router();
+
+// Google OAuth client
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // Router-level logger for debugging
 router.use((req, res, next) => {
@@ -93,6 +97,135 @@ router.post('/register', [
     res.status(500).json({
       success: false,
       message: 'Server error during registration'
+    });
+  }
+});
+
+/**
+ * @route   POST /api/auth/google
+ * @desc    Authenticate with Google (sign in or sign up)
+ * @access  Public
+ */
+router.post('/google', async (req, res) => {
+  try {
+    const { credential, access_token, role } = req.body;
+
+    if (!credential && !access_token) {
+      return res.status(400).json({
+        success: false,
+        message: 'Google credential or access_token is required'
+      });
+    }
+
+    let email, name, picture, googleId;
+
+    if (credential) {
+      // Verify ID token (from GoogleLogin component)
+      let payload;
+      try {
+        const ticket = await googleClient.verifyIdToken({
+          idToken: credential,
+          audience: process.env.GOOGLE_CLIENT_ID
+        });
+        payload = ticket.getPayload();
+      } catch (verifyError) {
+        console.error('Google token verification failed:', verifyError.message);
+        return res.status(401).json({
+          success: false,
+          message: 'Invalid Google token'
+        });
+      }
+      ({ email, name, picture, sub: googleId } = payload);
+    } else {
+      // Verify access token (from useGoogleLogin hook — custom styled button)
+      try {
+        const https = require('https');
+        const userInfo = await new Promise((resolve, reject) => {
+          const req = https.get(
+            'https://www.googleapis.com/oauth2/v3/userinfo',
+            { headers: { Authorization: `Bearer ${access_token}` } },
+            (resp) => {
+              let data = '';
+              resp.on('data', chunk => data += chunk);
+              resp.on('end', () => {
+                try { resolve(JSON.parse(data)); }
+                catch (e) { reject(new Error('Invalid JSON from Google')); }
+              });
+            }
+          );
+          req.on('error', reject);
+        });
+        if (!userInfo || !userInfo.email) {
+          return res.status(401).json({ success: false, message: 'Invalid Google access token' });
+        }
+        email = userInfo.email;
+        name = userInfo.name;
+        picture = userInfo.picture;
+        googleId = userInfo.sub;
+      } catch (err) {
+        console.error('Google access_token verification failed:', err.message);
+        return res.status(401).json({ success: false, message: 'Invalid Google access token' });
+      }
+    }
+    console.log('🔍 Google auth for:', email, name);
+
+    // Check if user already exists
+    let user = await memoryStore.findOne({ email });
+
+    if (user) {
+      // Existing user — update Google ID if not set
+      if (!user.googleId) {
+        user.googleId = googleId;
+        user.avatar = user.avatar || picture;
+        await memoryStore.update(user._id, { googleId, avatar: user.avatar });
+      }
+      console.log('✅ Existing user logged in via Google:', email);
+    } else {
+      // New user — create account
+      const salt = await bcrypt.genSalt(10);
+      const randomPassword = await bcrypt.hash(Math.random().toString(36) + Date.now(), salt);
+
+      user = await memoryStore.create({
+        name,
+        email,
+        password: randomPassword,
+        role: role || 'user',
+        company: '',
+        googleId,
+        avatar: picture,
+        isActive: true
+      });
+      console.log('✅ New user registered via Google:', email);
+    }
+
+    // Generate JWT token
+    const token = jwt.sign(
+      { id: user._id },
+      process.env.JWT_SECRET || 'demo-secret-key',
+      { expiresIn: process.env.JWT_EXPIRE || '7d' }
+    );
+
+    res.json({
+      success: true,
+      message: user ? 'Google login successful' : 'Google registration successful',
+      data: {
+        token,
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          company: user.company || '',
+          avatar: user.avatar || picture,
+          createdAt: user.createdAt
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Google auth error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error during Google authentication'
     });
   }
 });

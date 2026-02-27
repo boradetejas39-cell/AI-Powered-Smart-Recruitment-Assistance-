@@ -82,9 +82,7 @@ const ResumeUpload = () => {
       setUploadProgress(0);
 
       const response = await api.post('/resumes/upload', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+        timeout: 60000,
         onUploadProgress: (progressEvent) => {
           const progress = Math.round(
             (progressEvent.loaded * 100) / progressEvent.total
@@ -413,7 +411,7 @@ const ResumeUpload = () => {
                   </div>
                   <div className="ml-4 text-center flex-shrink-0">
                     <div className={`text-2xl font-bold ${match.score >= 70 ? 'text-green-600' :
-                        match.score >= 40 ? 'text-yellow-600' : 'text-red-500'
+                      match.score >= 40 ? 'text-yellow-600' : 'text-red-500'
                       }`}>
                       {match.score}%
                     </div>
