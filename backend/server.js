@@ -111,7 +111,11 @@ app.get('/api/jobs/:id/status', async (req, res) => {
 // Serve static assets in production (must come before 404 handler)
 if (process.env.NODE_ENV === 'production') {
   app.use(express.static(path.join(__dirname, '..', 'client', 'build')));
+  // Catch-all: serve React app for non-API routes only
   app.get('*', (req, res) => {
+    if (req.originalUrl.startsWith('/api')) {
+      return res.status(404).json({ success: false, message: 'API route not found' });
+    }
     res.sendFile(path.join(__dirname, '..', 'client', 'build', 'index.html'));
   });
 }
