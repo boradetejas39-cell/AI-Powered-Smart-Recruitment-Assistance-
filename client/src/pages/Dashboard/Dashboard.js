@@ -56,6 +56,7 @@ const Dashboard = () => {
   const stats = overview?.stats || {};
   const recentActivity = overview?.recentActivity || {};
   const topMatches = overview?.topMatches || [];
+  const jobMatchCounts = overview?.jobMatchCounts || [];
 
   // Prepare chart data
   const chartData = analytics?.trends?.jobs?.map((item, index) => ({
@@ -287,6 +288,67 @@ const Dashboard = () => {
           </CardBody>
         </Card>
       </div>
+
+      {/* Matching Candidates Per Job */}
+      {jobMatchCounts.length > 0 && (
+        <Card>
+          <CardHeader>
+            <h3 className="text-lg font-semibold text-gray-900">Matching Candidates Per Job</h3>
+            <p className="text-sm text-gray-600 mt-1">Number of matched candidates for each job posting</p>
+          </CardHeader>
+          <CardBody>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead>
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Job Title</th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Candidates</th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Avg Score</th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Top Score</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {jobMatchCounts.map((item, index) => (
+                    <tr key={index} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-4 py-3">
+                        <p className="text-sm font-medium text-gray-900">{item.title}</p>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-primary-100 text-primary-700 text-sm font-bold">
+                          {item.candidateCount}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <span className={`text-sm font-semibold ${item.avgScore >= 70 ? 'text-green-600' :
+                            item.avgScore >= 40 ? 'text-yellow-600' : 'text-red-500'
+                          }`}>
+                          {item.avgScore}%
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <span className={`text-sm font-semibold ${item.topScore >= 70 ? 'text-green-600' :
+                            item.topScore >= 40 ? 'text-yellow-600' : 'text-red-500'
+                          }`}>
+                          {item.topScore}%
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <Link
+                          to={`/app/matches/results/${item.jobId}`}
+                          className="text-primary-600 hover:text-primary-700 text-sm font-medium"
+                        >
+                          View →
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardBody>
+        </Card>
+      )}
     </div>
   );
 };

@@ -4,15 +4,73 @@ const fs = require('fs');
 const mongoose = require('mongoose');
 const { body, validationResult } = require('express-validator');
 const Resume = require('../models/Resume');
+const Job = require('../models/Job');
+const Match = require('../models/Match');
 const { protect, authorize } = require('../middleware/auth');
 const { upload } = require('../middleware/upload');
 const { asyncHandler } = require('../middleware/errorHandler');
 const resumeParserService = require('../services/resumeParserService');
+const aiMatchingService = require('../services/aiMatchingService');
 
 const router = express.Router();
 
 /** True when Mongoose has an active MongoDB connection */
 const isMongoConnected = () => mongoose.connection.readyState === 1;
+
+/**
+ * Auto-match a resume against all active jobs after upload.
+ * Returns an array of { job, score, breakdown } objects sorted by score desc.
+ */
+async function autoMatchResume(resume) {
+  if (!isMongoConnected()) return [];
+  try {
+    const activeJobs = await Job.find({ status: 'active' }).lean();
+    if (activeJobs.length === 0) return [];
+
+    const matches = [];
+    for (const job of activeJobs) {
+      try {
+        const matchData = await aiMatchingService.calculateMatch(job._id, resume._id);
+
+        // Save match to database
+        const savedMatch = await Match.findOneAndUpdate(
+          { jobId: job._id, resumeId: resume._id },
+          {
+            jobId: job._id,
+            resumeId: resume._id,
+            score: matchData.score,
+            breakdown: matchData.breakdown,
+            algorithm: matchData.algorithm
+          },
+          { upsert: true, new: true }
+        );
+
+        matches.push({
+          matchId: savedMatch._id,
+          job: {
+            _id: job._id,
+            title: job.title,
+            location: job.location,
+            jobType: job.jobType,
+            department: job.department,
+            requiredSkills: job.requiredSkills
+          },
+          score: matchData.score,
+          breakdown: matchData.breakdown
+        });
+      } catch (err) {
+        console.error(`Match error for job ${job._id}:`, err.message);
+      }
+    }
+
+    // Sort by score descending
+    matches.sort((a, b) => b.score - a.score);
+    return matches;
+  } catch (error) {
+    console.error('Auto-match error:', error.message);
+    return [];
+  }
+}
 
 // All routes are protected
 router.use(protect);
@@ -107,10 +165,16 @@ router.post('/user-upload', upload.single('resume'), asyncHandler(async (req, re
 
     console.log('✅ Resume uploaded successfully for user:', req.user.email);
 
+    // Auto-match against active jobs
+    console.log('🔍 Running auto-match against active jobs...');
+    const jobMatches = await autoMatchResume(savedResume);
+    console.log(`✅ Found ${jobMatches.length} job matches`);
+
     res.status(201).json({
       success: true,
       message: 'Resume uploaded successfully',
-      data: savedResume
+      data: savedResume,
+      matches: jobMatches
     });
   } catch (error) {
     console.error('❌ Resume upload error:', error);
@@ -272,10 +336,19 @@ router.post('/upload', protect, authorize('hr', 'admin'), upload.single('resume'
       };
     }
 
+    // Auto-match against active jobs (synchronous so we can return results)
+    let jobMatches = [];
+    if (isMongoConnected() && resume._id) {
+      console.log('🔍 Running auto-match against active jobs...');
+      jobMatches = await autoMatchResume(resume);
+      console.log(`✅ Found ${jobMatches.length} job matches for resume ${resume._id}`);
+    }
+
     res.status(201).json({
       success: true,
       message: 'Resume uploaded and parsed successfully',
-      data: { resume }
+      data: { resume },
+      matches: jobMatches
     });
   } catch (error) {
     console.error('❌ Resume upload error:', error);
@@ -535,6 +608,53 @@ router.get('/:id', asyncHandler(async (req, res) => {
     success: true,
     data: { resume }
   });
+}));
+
+/**
+ * @route   GET /api/resumes/:id/matches
+ * @desc    Get all job matches for a specific resume
+ * @access  Private
+ */
+router.get('/:id/matches', asyncHandler(async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!isMongoConnected()) {
+      return res.json({ success: true, data: { matches: [] } });
+    }
+
+    // Find all matches for this resume, populate job details
+    const matches = await Match.find({ resumeId: id })
+      .populate('jobId', 'title location jobType department requiredSkills status salary')
+      .sort({ score: -1 })
+      .lean();
+
+    // Format response
+    const formattedMatches = matches
+      .filter(m => m.jobId) // filter out matches where job was deleted
+      .map(m => ({
+        matchId: m._id,
+        job: m.jobId,
+        score: m.score,
+        breakdown: m.breakdown,
+        createdAt: m.createdAt
+      }));
+
+    res.json({
+      success: true,
+      data: {
+        matches: formattedMatches,
+        totalMatches: formattedMatches.length,
+        highMatches: formattedMatches.filter(m => m.score >= 70).length,
+        averageScore: formattedMatches.length > 0
+          ? Math.round(formattedMatches.reduce((sum, m) => sum + m.score, 0) / formattedMatches.length)
+          : 0
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching resume matches:', error);
+    res.status(500).json({ success: false, message: 'Error fetching matches' });
+  }
 }));
 
 /**

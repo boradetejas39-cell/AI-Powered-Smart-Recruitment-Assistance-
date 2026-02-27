@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import api from '../../api/axios';
 import toast from 'react-hot-toast';
 import {
   CloudArrowUpIcon,
   DocumentIcon,
-  XMarkIcon
+  XMarkIcon,
+  BriefcaseIcon,
+  CheckCircleIcon,
+  ExclamationCircleIcon
 } from '@heroicons/react/24/outline';
 
 const ResumeUpload = () => {
@@ -14,6 +17,7 @@ const ResumeUpload = () => {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [parsedData, setParsedData] = useState(null);
+  const [jobMatches, setJobMatches] = useState([]);
   const navigate = useNavigate();
 
   const handleDrag = (e) => {
@@ -30,7 +34,7 @@ const ResumeUpload = () => {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
-    
+
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       handleFile(e.dataTransfer.files[0]);
     }
@@ -63,6 +67,7 @@ const ResumeUpload = () => {
   const removeFile = () => {
     setFile(null);
     setParsedData(null);
+    setJobMatches([]);
     setUploadProgress(0);
   };
 
@@ -89,7 +94,14 @@ const ResumeUpload = () => {
       });
 
       setParsedData(response.data.data.resume);
-      toast.success('Resume uploaded and parsed successfully!');
+      // Capture job matches from response
+      if (response.data.matches && response.data.matches.length > 0) {
+        setJobMatches(response.data.matches);
+        toast.success(`Resume uploaded! Matched with ${response.data.matches.length} job(s)`);
+      } else {
+        setJobMatches([]);
+        toast.success('Resume uploaded and parsed successfully!');
+      }
     } catch (error) {
       console.error('Upload error:', error);
       toast.error(error.response?.data?.message || 'Failed to upload resume');
@@ -125,11 +137,10 @@ const ResumeUpload = () => {
         <div className="card-body">
           {!file ? (
             <div
-              className={`relative border-2 border-dashed rounded-lg p-12 text-center transition-colors ${
-                dragActive
-                  ? 'border-primary-400 bg-primary-50'
-                  : 'border-gray-300 hover:border-gray-400'
-              }`}
+              className={`relative border-2 border-dashed rounded-lg p-12 text-center transition-colors ${dragActive
+                ? 'border-primary-400 bg-primary-50'
+                : 'border-gray-300 hover:border-gray-400'
+                }`}
               onDragEnter={handleDrag}
               onDragLeave={handleDrag}
               onDragOver={handleDrag}
@@ -283,7 +294,7 @@ const ResumeUpload = () => {
                       <div className="flex items-center justify-between">
                         <h5 className="text-sm font-medium text-gray-900">{exp.position}</h5>
                         <span className="text-xs text-gray-500">
-                          {exp.startDate ? new Date(exp.startDate).getFullYear() : ''} - 
+                          {exp.startDate ? new Date(exp.startDate).getFullYear() : ''} -
                           {exp.endDate ? new Date(exp.endDate).getFullYear() : 'Present'}
                         </span>
                       </div>
@@ -309,7 +320,7 @@ const ResumeUpload = () => {
                         <p className="text-sm text-gray-600">{edu.institution}</p>
                       </div>
                       <span className="text-xs text-gray-500">
-                        {edu.startDate ? new Date(edu.startDate).getFullYear() : ''} - 
+                        {edu.startDate ? new Date(edu.startDate).getFullYear() : ''} -
                         {edu.endDate ? new Date(edu.endDate).getFullYear() : ''}
                       </span>
                     </div>
@@ -333,6 +344,112 @@ const ResumeUpload = () => {
                 View Resume Details
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Job Match Results */}
+      {parsedData && jobMatches.length > 0 && (
+        <div className="card">
+          <div className="card-header">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-medium text-gray-900 flex items-center gap-2">
+                  <BriefcaseIcon className="h-5 w-5 text-primary-600" />
+                  Matching Jobs ({jobMatches.length})
+                </h3>
+                <p className="text-sm text-gray-600 mt-1">
+                  AI-matched job openings based on skills, experience, and education
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="card-body">
+            <div className="space-y-4">
+              {jobMatches.map((match, index) => (
+                <div
+                  key={match.matchId || index}
+                  className="flex items-center justify-between p-4 rounded-lg border border-gray-200 hover:border-primary-300 hover:bg-primary-50/30 transition-all"
+                >
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-sm font-semibold text-gray-900">{match.job?.title || 'Untitled Job'}</h4>
+                      {match.score >= 70 && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                          <CheckCircleIcon className="h-3 w-3" /> Strong Match
+                        </span>
+                      )}
+                      {match.score >= 40 && match.score < 70 && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">
+                          Moderate
+                        </span>
+                      )}
+                      {match.score < 40 && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
+                          <ExclamationCircleIcon className="h-3 w-3" /> Low
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-4 mt-1 text-xs text-gray-500">
+                      {match.job?.location && <span>{match.job.location}</span>}
+                      {match.job?.jobType && <span className="capitalize">{match.job.jobType}</span>}
+                      {match.job?.department && <span>{match.job.department}</span>}
+                    </div>
+                    {/* Skill breakdown */}
+                    {match.breakdown?.skillMatch && (
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        {match.breakdown.skillMatch.matchedSkills?.slice(0, 6).map((s, i) => (
+                          <span key={i} className="inline-block px-2 py-0.5 text-xs rounded bg-green-50 text-green-700 border border-green-200">
+                            {s.skill}
+                          </span>
+                        ))}
+                        {match.breakdown.skillMatch.missingSkills?.slice(0, 3).map((s, i) => (
+                          <span key={`m-${i}`} className="inline-block px-2 py-0.5 text-xs rounded bg-red-50 text-red-600 border border-red-200 line-through">
+                            {s.skill}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div className="ml-4 text-center flex-shrink-0">
+                    <div className={`text-2xl font-bold ${match.score >= 70 ? 'text-green-600' :
+                        match.score >= 40 ? 'text-yellow-600' : 'text-red-500'
+                      }`}>
+                      {match.score}%
+                    </div>
+                    <p className="text-xs text-gray-500">match</p>
+                    {/* Mini breakdown */}
+                    <div className="mt-1 text-xs text-gray-400 space-y-0.5">
+                      <div>Skills: {match.breakdown?.skillMatch?.score || 0}%</div>
+                      <div>Exp: {match.breakdown?.experienceMatch?.score || 0}%</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {jobMatches.length === 0 && (
+              <div className="text-center py-8 text-gray-500">
+                <BriefcaseIcon className="h-12 w-12 mx-auto text-gray-300 mb-3" />
+                <p>No active job postings to match against.</p>
+                <p className="text-sm mt-1">Create job postings first, then upload resumes to see matches.</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* No matches message */}
+      {parsedData && jobMatches.length === 0 && (
+        <div className="card">
+          <div className="card-body text-center py-8">
+            <BriefcaseIcon className="h-12 w-12 mx-auto text-gray-300 mb-3" />
+            <p className="text-gray-600 font-medium">No job matches found</p>
+            <p className="text-sm text-gray-500 mt-1">
+              Create job postings to automatically match candidates when resumes are uploaded.
+            </p>
+            <Link to="/app/jobs/new" className="btn-primary inline-block mt-4">
+              Create Job Posting
+            </Link>
           </div>
         </div>
       )}

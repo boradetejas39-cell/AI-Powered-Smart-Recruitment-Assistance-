@@ -37,7 +37,25 @@ router.get('/overview', authorize('hr', 'admin'), asyncHandler(async (req, res) 
     recentResumes = await Resume.find().sort({ createdAt: -1 }).limit(5)
       .select('candidateName email status skills createdAt uploadedBy').lean();
     recentMatches = await Match.find().sort({ createdAt: -1 }).limit(5).lean();
-    topMatches = await Match.find({ score: { $gte: 80 } }).sort({ score: -1 }).limit(10).lean();
+    topMatches = await Match.find({ score: { $gte: 60 } })
+      .sort({ score: -1 })
+      .limit(10)
+      .populate('resumeId', 'candidateName email skills')
+      .populate('jobId', 'title location')
+      .lean();
+    // Format topMatches for frontend
+    topMatches = topMatches
+      .filter(m => m.resumeId && m.jobId)
+      .map(m => ({
+        candidateName: m.resumeId?.candidateName || 'Unknown',
+        email: m.resumeId?.email || '',
+        jobTitle: m.jobId?.title || 'Unknown Job',
+        jobLocation: m.jobId?.location || '',
+        matchScore: m.score,
+        matchId: m._id,
+        resumeId: m.resumeId?._id,
+        jobId: m.jobId?._id
+      }));
   } else if (global.fileDB) {
     // File-based database path
     const jobs = global.fileDB.read('jobs');
@@ -75,6 +93,43 @@ router.get('/overview', authorize('hr', 'admin'), asyncHandler(async (req, res) 
     topMatches = matches.filter(m => m.score >= 80).sort((a, b) => b.score - a.score).slice(0, 10);
   }
 
+  // Calculate matched candidates and average match score
+  let matchedCandidates = 0;
+  let averageMatchScore = 0;
+
+  if (isMongoConnected()) {
+    try {
+      // Count unique resumes that have at least one match
+      const uniqueResumes = await Match.distinct('resumeId');
+      matchedCandidates = uniqueResumes.length;
+
+      // Calculate average match score
+      const scoreAgg = await Match.aggregate([
+        { $group: { _id: null, avgScore: { $avg: '$score' } } }
+      ]);
+      averageMatchScore = scoreAgg.length > 0 ? Math.round(scoreAgg[0].avgScore) : 0;
+    } catch (err) {
+      console.error('Error calculating match stats:', err.message);
+    }
+  }
+
+  // Build per-job matching candidate counts
+  let jobMatchCounts = [];
+  if (isMongoConnected()) {
+    try {
+      jobMatchCounts = await Match.aggregate([
+        { $group: { _id: '$jobId', candidateCount: { $sum: 1 }, avgScore: { $avg: '$score' }, topScore: { $max: '$score' } } },
+        { $lookup: { from: 'jobs', localField: '_id', foreignField: '_id', as: 'job' } },
+        { $unwind: '$job' },
+        { $project: { jobId: '$_id', title: '$job.title', candidateCount: 1, avgScore: { $round: ['$avgScore', 0] }, topScore: { $round: ['$topScore', 0] } } },
+        { $sort: { candidateCount: -1 } },
+        { $limit: 20 }
+      ]);
+    } catch (err) {
+      console.error('Error calculating job match counts:', err.message);
+    }
+  }
+
   res.json({
     success: true,
     data: {
@@ -84,14 +139,17 @@ router.get('/overview', authorize('hr', 'admin'), asyncHandler(async (req, res) 
         totalResumes,
         activeResumes,
         totalMatches,
-        totalUsers
+        totalUsers,
+        matchedCandidates,
+        averageMatchScore
       },
       recentActivity: {
         jobs: recentJobs,
         resumes: recentResumes,
         matches: recentMatches
       },
-      topMatches
+      topMatches,
+      jobMatchCounts
     }
   });
 }));

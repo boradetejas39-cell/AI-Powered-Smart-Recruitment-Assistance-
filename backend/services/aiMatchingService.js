@@ -13,7 +13,7 @@ class AIMatchingService {
     // Initialize NLP tools
     this.tokenizer = new natural.WordTokenizer();
     this.stemmer = natural.PorterStemmer;
-    
+
     // Common skill categories and their weights
     this.skillCategories = {
       'programming': {
@@ -33,7 +33,7 @@ class AIMatchingService {
         weight: 0.9
       }
     };
-    
+
     // Common stopwords to filter out
     this.stopwords = new Set([
       'i', 'me', 'my', 'myself', 'we', 'our', 'ours', 'ourselves', 'you', 'your', 'yours',
@@ -60,7 +60,7 @@ class AIMatchingService {
    */
   cleanText(text) {
     if (!text) return '';
-    
+
     return text
       .toLowerCase()
       .replace(/[^\w\s]/g, ' ') // Remove special characters
@@ -86,13 +86,13 @@ class AIMatchingService {
     const cleanedText = this.cleanText(text);
     const tokens = this.tokenizeAndFilter(cleanedText);
     const skills = new Set();
-    
+
     // Extract skills based on categories
     Object.entries(this.skillCategories).forEach(([category, config]) => {
       config.keywords.forEach(keyword => {
         const keywordTokens = this.tokenizeAndFilter(keyword);
         const keywordStems = keywordTokens.map(token => this.stemmer.stem(token));
-        
+
         // Check if all keyword stems are present in tokens
         const hasAllTokens = keywordStems.every(stem => tokens.includes(stem));
         if (hasAllTokens) {
@@ -100,20 +100,20 @@ class AIMatchingService {
         }
       });
     });
-    
+
     // Additional skill extraction based on common patterns
     const skillPatterns = [
       /\b(javascript|python|java|react|node|angular|vue|html|css|sql|mongodb|mysql|aws|azure|docker|kubernetes|git|ci\/cd|devops|microservices)\b/gi,
       /\b(project management|agile|scrum|analytics|strategy|planning|communication|leadership|teamwork|problem-solving|critical thinking|creativity)\b/gi
     ];
-    
+
     skillPatterns.forEach(pattern => {
       const matches = cleanedText.match(pattern);
       if (matches) {
         matches.forEach(match => skills.add(match.toLowerCase()));
       }
     });
-    
+
     return Array.from(skills);
   }
 
@@ -123,22 +123,22 @@ class AIMatchingService {
   calculateCosineSimilarity(text1, text2) {
     const tokens1 = this.tokenizeAndFilter(this.cleanText(text1));
     const tokens2 = this.tokenizeAndFilter(this.cleanText(text2));
-    
+
     // Create word frequency vectors
     const allTokens = [...new Set([...tokens1, ...tokens2])];
     const vector1 = allTokens.map(token => tokens1.filter(t => t === token).length);
     const vector2 = allTokens.map(token => tokens2.filter(t => t === token).length);
-    
+
     // Calculate dot product
     const dotProduct = vector1.reduce((sum, val, i) => sum + (val * vector2[i]), 0);
-    
+
     // Calculate magnitudes
     const magnitude1 = Math.sqrt(vector1.reduce((sum, val) => sum + (val * val), 0));
     const magnitude2 = Math.sqrt(vector2.reduce((sum, val) => sum + (val * val), 0));
-    
+
     // Avoid division by zero
     if (magnitude1 === 0 || magnitude2 === 0) return 0;
-    
+
     return dotProduct / (magnitude1 * magnitude2);
   }
 
@@ -148,12 +148,12 @@ class AIMatchingService {
   calculateSkillMatch(jobSkills, resumeSkills) {
     const normalizedJobSkills = jobSkills.map(skill => skill.toLowerCase().trim());
     const normalizedResumeSkills = resumeSkills.map(skill => skill.toLowerCase().trim());
-    
+
     const matchedSkills = [];
     const missingSkills = [];
     let totalWeight = 0;
     let matchedWeight = 0;
-    
+
     normalizedJobSkills.forEach(jobSkill => {
       // Find skill category and weight
       let skillWeight = 1;
@@ -163,16 +163,16 @@ class AIMatchingService {
           break;
         }
       }
-      
+
       totalWeight += skillWeight;
-      
+
       // Check if skill is present in resume (direct match or partial)
-      const isMatched = normalizedResumeSkills.some(resumeSkill => 
-        resumeSkill === jobSkill || 
-        resumeSkill.includes(jobSkill) || 
+      const isMatched = normalizedResumeSkills.some(resumeSkill =>
+        resumeSkill === jobSkill ||
+        resumeSkill.includes(jobSkill) ||
         jobSkill.includes(resumeSkill)
       );
-      
+
       if (isMatched) {
         matchedSkills.push({ skill: jobSkill, weight: skillWeight });
         matchedWeight += skillWeight;
@@ -180,9 +180,9 @@ class AIMatchingService {
         missingSkills.push({ skill: jobSkill, weight: skillWeight });
       }
     });
-    
+
     const score = totalWeight > 0 ? (matchedWeight / totalWeight) * 100 : 0;
-    
+
     return {
       score: Math.round(score),
       matchedSkills,
@@ -198,10 +198,10 @@ class AIMatchingService {
   calculateExperienceMatch(requiredExperience, candidateExperience) {
     const requiredYears = requiredExperience.min || 0;
     const candidateYears = candidateExperience || 0;
-    
+
     let score = 0;
     let meetsRequirement = false;
-    
+
     if (requiredYears === 0) {
       score = 100; // No experience required
       meetsRequirement = true;
@@ -216,7 +216,7 @@ class AIMatchingService {
       score = (candidateYears / requiredYears) * 80;
       meetsRequirement = false;
     }
-    
+
     return {
       score: Math.round(score),
       requiredYears,
@@ -236,7 +236,7 @@ class AIMatchingService {
         fieldRelevance: 0
       };
     }
-    
+
     // Get highest education
     const highestEducation = candidateEducation.reduce((highest, current) => {
       const degreeLevels = {
@@ -250,25 +250,25 @@ class AIMatchingService {
         'diploma': 0.5,
         'certificate': 0.25
       };
-      
+
       const currentLevel = this.getEducationLevel(current.degree);
       const highestLevel = this.getEducationLevel(highest.degree);
-      
+
       return currentLevel > highestLevel ? current : highest;
     });
-    
+
     // Calculate field relevance based on job description
     const jobText = this.cleanText(jobDescription);
     const educationText = this.cleanText(
       candidateEducation.map(edu => `${edu.degree} ${edu.field}`).join(' ')
     );
-    
+
     const fieldRelevance = this.calculateCosineSimilarity(jobText, educationText) * 100;
-    
+
     // Base score on education level
     let baseScore = 0;
     const highestDegree = highestEducation.degree.toLowerCase();
-    
+
     if (highestDegree.includes('phd') || highestDegree.includes('doctorate')) {
       baseScore = 100;
     } else if (highestDegree.includes('master') || highestDegree.includes('mba')) {
@@ -282,10 +282,10 @@ class AIMatchingService {
     } else {
       baseScore = 25;
     }
-    
+
     // Combine base score with field relevance
     const finalScore = (baseScore * 0.7) + (fieldRelevance * 0.3);
-    
+
     return {
       score: Math.round(finalScore),
       highestDegree: highestEducation.degree,
@@ -298,7 +298,7 @@ class AIMatchingService {
    */
   getEducationLevel(degree) {
     if (!degree) return 0;
-    
+
     const degreeLevels = {
       'phd': 4,
       'doctorate': 4,
@@ -310,14 +310,14 @@ class AIMatchingService {
       'diploma': 0.5,
       'certificate': 0.25
     };
-    
+
     const degreeLower = degree.toLowerCase();
     for (const [level, score] of Object.entries(degreeLevels)) {
       if (degreeLower.includes(level)) {
         return score;
       }
     }
-    
+
     return 0;
   }
 
@@ -333,7 +333,7 @@ class AIMatchingService {
         isRemote: true
       };
     }
-    
+
     if (!jobLocation || !candidateLocation) {
       return {
         score: 50,
@@ -342,10 +342,10 @@ class AIMatchingService {
         isRemote: false
       };
     }
-    
+
     const jobLoc = this.cleanText(jobLocation);
     const candidateLoc = this.cleanText(candidateLocation);
-    
+
     // Exact match
     if (jobLoc === candidateLoc) {
       return {
@@ -355,16 +355,16 @@ class AIMatchingService {
         isRemote: false
       };
     }
-    
+
     // Partial match (same city, state, etc.)
     const jobTokens = this.tokenizeAndFilter(jobLoc);
     const candidateTokens = this.tokenizeAndFilter(candidateLoc);
-    
+
     const commonTokens = jobTokens.filter(token => candidateTokens.includes(token));
     const similarity = commonTokens.length / Math.max(jobTokens.length, candidateTokens.length);
-    
+
     const score = Math.round(similarity * 100);
-    
+
     return {
       score,
       jobLocation,
@@ -381,11 +381,11 @@ class AIMatchingService {
       // Get job and resume data
       const job = await Job.findById(jobId);
       const resume = await Resume.findById(resumeId);
-      
+
       if (!job || !resume) {
         throw new Error('Job or Resume not found');
       }
-      
+
       // Calculate individual scores
       const skillMatch = this.calculateSkillMatch(job.requiredSkills, resume.skills);
       const experienceMatch = this.calculateExperienceMatch(
@@ -396,22 +396,22 @@ class AIMatchingService {
       const locationMatch = this.calculateLocationMatch(
         job.location,
         resume.currentLocation,
-        job.jobType === 'remote'
+        job.jobType === 'remote' || (job.location && job.location.toLowerCase().includes('remote'))
       );
-      
+
       // Calculate weighted final score
       const weights = {
         skills: 0.6,
         experience: 0.3,
         education: 0.1
       };
-      
+
       const finalScore = Math.round(
         (skillMatch.score * weights.skills) +
         (experienceMatch.score * weights.experience) +
         (educationMatch.score * weights.education)
       );
-      
+
       return {
         jobId,
         resumeId,
@@ -442,26 +442,26 @@ class AIMatchingService {
       if (!job) {
         throw new Error('Job not found');
       }
-      
+
       const resumes = await Resume.find({ status: 'active' });
       const matches = [];
-      
+
       for (const resume of resumes) {
         const matchData = await this.calculateMatch(jobId, resume._id);
-        
+
         // Save match to database
         const match = await Match.findOneAndUpdate(
           { jobId, resumeId: resume._id },
           matchData,
           { upsert: true, new: true }
         ).populate('resumeId', 'candidateName email skills');
-        
+
         matches.push(match);
       }
-      
+
       // Sort by score descending
       matches.sort((a, b) => b.score - a.score);
-      
+
       return matches;
     } catch (error) {
       console.error('Error matching resumes for job:', error);
