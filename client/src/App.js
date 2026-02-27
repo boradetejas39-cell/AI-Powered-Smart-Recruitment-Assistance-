@@ -1,11 +1,8 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { GoogleOAuthProvider } from '@react-oauth/google';
-import { AuthProvider } from './contexts/AuthContext';
-import { useAuth } from './contexts/AuthContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { LoadingSpinner } from './components/UI';
-
-const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID || '';
 
 // Layout Components
 import Layout from './components/Layout/Layout';
@@ -62,6 +59,8 @@ import NotificationList from './pages/Notifications/NotificationList';
 
 // Component Showcase
 import ComponentShowcase from './pages/ComponentShowcase';
+
+const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID || '';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
