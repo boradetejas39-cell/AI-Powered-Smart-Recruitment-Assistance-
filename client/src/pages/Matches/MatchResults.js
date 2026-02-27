@@ -49,7 +49,7 @@ const MatchResults = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [jobId, filters]);
 
-  const calculateMatches = async () => {
+  const calculateMatches = async () => { // eslint-disable-line no-unused-vars
     try {
       setCalculating(true);
       await axios.post(`/api/matches/job/${jobId}`);
@@ -99,7 +99,7 @@ const MatchResults = () => {
 
   const formatExperience = (experience) => {
     if (!experience || experience.length === 0) return 'No experience';
-    
+
     const totalYears = experience.reduce((total, exp) => {
       const start = new Date(exp.startDate);
       const end = exp.endDate ? new Date(exp.endDate) : new Date();

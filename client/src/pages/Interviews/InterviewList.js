@@ -3,9 +3,6 @@ import { Link } from 'react-router-dom';
 import { interviewAPI } from '../../api/v2';
 import {
     ChatBubbleLeftRightIcon,
-    ClockIcon,
-    CheckCircleIcon,
-    PlayIcon,
     ChevronLeftIcon,
     ChevronRightIcon
 } from '@heroicons/react/24/outline';
@@ -31,6 +28,7 @@ const InterviewList = () => {
     const [meta, setMeta] = useState({ page: 1, pages: 1, total: 0 });
     const [filters, setFilters] = useState({ status: '', page: 1 });
 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => { fetchInterviews(); }, [filters.page, filters.status]);
 
     const fetchInterviews = async () => {

@@ -4,9 +4,6 @@ import api from '../../api/axios';
 import { Link } from 'react-router-dom';
 import {
     FunnelIcon,
-    UserGroupIcon,
-    EyeIcon,
-    ArrowRightIcon,
 } from '@heroicons/react/24/outline';
 
 const STAGES = [

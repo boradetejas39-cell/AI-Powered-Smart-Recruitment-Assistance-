@@ -30,9 +30,7 @@ const InterviewDetail = () => {
     const [evaluating, setEvaluating] = useState(false);
     const isHRAdmin = ['admin', 'hr', 'recruiter'].includes(user?.role);
 
-    useEffect(() => { fetchInterview(); }, [id]);
-
-    const fetchInterview = async () => {
+    const fetchInterview = React.useCallback(async () => {
         try {
             const res = await interviewAPI.get(id);
             setInterview(res.data.data.interview);
@@ -41,7 +39,10 @@ const InterviewDetail = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [id]);
+
+    useEffect(() => { fetchInterview(); }, [fetchInterview]);
+
 
     const handleSubmitAnswer = async (questionId) => {
         if (!currentAnswer.trim()) return;
@@ -104,8 +105,8 @@ const InterviewDetail = () => {
                     </div>
                     <div className="flex items-center gap-3">
                         <span className={`px-3 py-1 rounded-full text-sm font-medium ${isEvaluated ? 'bg-green-100 text-green-700' :
-                                interview.status === 'in_progress' ? 'bg-blue-100 text-blue-700' :
-                                    'bg-gray-100 text-gray-600'
+                            interview.status === 'in_progress' ? 'bg-blue-100 text-blue-700' :
+                                'bg-gray-100 text-gray-600'
                             }`}>
                             {interview.status?.replace('_', ' ')}
                         </span>
@@ -146,9 +147,9 @@ const InterviewDetail = () => {
                         </div>
                         <div className="bg-white rounded-lg p-4 text-center shadow-sm">
                             <span className={`inline-flex px-3 py-1.5 rounded-full text-sm font-semibold ${interview.recommendation === 'strong_hire' ? 'bg-green-100 text-green-700' :
-                                    interview.recommendation === 'hire' ? 'bg-emerald-100 text-emerald-700' :
-                                        interview.recommendation === 'maybe' ? 'bg-yellow-100 text-yellow-700' :
-                                            'bg-red-100 text-red-700'
+                                interview.recommendation === 'hire' ? 'bg-emerald-100 text-emerald-700' :
+                                    interview.recommendation === 'maybe' ? 'bg-yellow-100 text-yellow-700' :
+                                        'bg-red-100 text-red-700'
                                 }`}>{interview.recommendation?.replace('_', ' ').toUpperCase()}</span>
                             <p className="text-sm text-gray-500 mt-2">Recommendation</p>
                         </div>
