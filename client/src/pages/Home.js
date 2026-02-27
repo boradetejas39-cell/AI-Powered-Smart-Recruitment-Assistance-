@@ -191,33 +191,33 @@ const Home = () => {
                         <div>
                             <h4 className="text-white font-semibold mb-4">Product</h4>
                             <ul className="space-y-2 text-gray-400">
-                                <li><a href="#" className="hover:text-white transition">Features</a></li>
-                                <li><a href="#" className="hover:text-white transition">Pricing</a></li>
-                                <li><a href="#" className="hover:text-white transition">Security</a></li>
+                                <li><button className="hover:text-white transition">Features</button></li>
+                                <li><button className="hover:text-white transition">Pricing</button></li>
+                                <li><button className="hover:text-white transition">Security</button></li>
                             </ul>
                         </div>
                         <div>
                             <h4 className="text-white font-semibold mb-4">Company</h4>
                             <ul className="space-y-2 text-gray-400">
-                                <li><a href="#" className="hover:text-white transition">About</a></li>
-                                <li><a href="#" className="hover:text-white transition">Blog</a></li>
-                                <li><a href="#" className="hover:text-white transition">Careers</a></li>
+                                <li><button className="hover:text-white transition">About</button></li>
+                                <li><button className="hover:text-white transition">Blog</button></li>
+                                <li><button className="hover:text-white transition">Careers</button></li>
                             </ul>
                         </div>
                         <div>
                             <h4 className="text-white font-semibold mb-4">Legal</h4>
                             <ul className="space-y-2 text-gray-400">
-                                <li><a href="#" className="hover:text-white transition">Privacy</a></li>
-                                <li><a href="#" className="hover:text-white transition">Terms</a></li>
-                                <li><a href="#" className="hover:text-white transition">Contact</a></li>
+                                <li><button className="hover:text-white transition">Privacy</button></li>
+                                <li><button className="hover:text-white transition">Terms</button></li>
+                                <li><button className="hover:text-white transition">Contact</button></li>
                             </ul>
                         </div>
                         <div>
                             <h4 className="text-white font-semibold mb-4">Follow Us</h4>
                             <ul className="space-y-2 text-gray-400">
-                                <li><a href="#" className="hover:text-white transition">Twitter</a></li>
-                                <li><a href="#" className="hover:text-white transition">LinkedIn</a></li>
-                                <li><a href="#" className="hover:text-white transition">GitHub</a></li>
+                                <li><button className="hover:text-white transition">Twitter</button></li>
+                                <li><button className="hover:text-white transition">LinkedIn</button></li>
+                                <li><button className="hover:text-white transition">GitHub</button></li>
                             </ul>
                         </div>
                     </div>

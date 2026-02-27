@@ -8,7 +8,6 @@ import {
     SparklesIcon,
     CheckCircleIcon,
     XCircleIcon,
-    ClockIcon,
     ChatBubbleLeftRightIcon,
 } from '@heroicons/react/24/outline';
 
