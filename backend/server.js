@@ -99,6 +99,17 @@ app.use('/api/v2/analytics', v2AnalyticsRoutes);
 app.use('/api/v2/notifications', v2NotificationRoutes);
 app.use('/api/v2/admin', v2AdminRoutes);
 
+// Root endpoint (for Render health checks & direct visits)
+app.get('/', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'AI Recruiter API is running',
+    version: '2.0',
+    health: '/api/health',
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.status(200).json({
