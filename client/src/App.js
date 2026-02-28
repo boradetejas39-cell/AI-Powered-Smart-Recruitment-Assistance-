@@ -62,6 +62,14 @@ import ComponentShowcase from './pages/ComponentShowcase';
 
 const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID || '';
 
+// Wrapper: only load GoogleOAuthProvider when a client ID is configured
+const OptionalGoogleOAuth = ({ children }) => {
+  if (GOOGLE_CLIENT_ID) {
+    return <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>{children}</GoogleOAuthProvider>;
+  }
+  return <>{children}</>;
+};
+
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
@@ -103,7 +111,7 @@ const PublicRoute = ({ children }) => {
 
 function App() {
   return (
-    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+    <OptionalGoogleOAuth>
       <AuthProvider>
         <Router>
           <div className="App">
@@ -181,7 +189,7 @@ function App() {
           </div>
         </Router>
       </AuthProvider>
-    </GoogleOAuthProvider>
+    </OptionalGoogleOAuth>
   );
 }
 
