@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useGoogleLogin } from '@react-oauth/google';
+import { useSafeGoogleLogin, GOOGLE_ENABLED } from '../../utils/googleAuth';
 import { useAuth } from '../../contexts/AuthContext';
 import { Input } from '../../components/UI';
 import { Button } from '../../components/UI';
@@ -42,7 +42,7 @@ const Register = () => {
   const navigate = useNavigate();
 
   // Google sign-up via useGoogleLogin hook (custom button)
-  const handleGoogleSignup = useGoogleLogin({
+  const handleGoogleSignup = useSafeGoogleLogin({
     onSuccess: async (tokenResponse) => {
       setGoogleLoading(true);
       setErrors({});
@@ -203,35 +203,39 @@ const Register = () => {
           </div>
 
           {/* Google Sign-Up Button */}
-          <button
-            type="button"
-            onClick={() => handleGoogleSignup()}
-            disabled={googleLoading || loading}
-            className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-white border-2 border-gray-200 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50 hover:border-gray-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed group"
-          >
-            {googleLoading ? (
-              <svg className="animate-spin h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-              </svg>
-            ) : (
-              <GoogleIcon />
-            )}
-            <span>{googleLoading ? 'Creating account...' : 'Sign up with Google'}</span>
-          </button>
-          <p className="mt-2 text-center text-xs text-gray-400">
-            Uses the role selected above
-          </p>
+          {GOOGLE_ENABLED && (
+            <>
+              <button
+                type="button"
+                onClick={() => handleGoogleSignup()}
+                disabled={googleLoading || loading}
+                className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-white border-2 border-gray-200 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50 hover:border-gray-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed group"
+              >
+                {googleLoading ? (
+                  <svg className="animate-spin h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                  </svg>
+                ) : (
+                  <GoogleIcon />
+                )}
+                <span>{googleLoading ? 'Creating account...' : 'Sign up with Google'}</span>
+              </button>
+              <p className="mt-2 text-center text-xs text-gray-400">
+                Uses the role selected above
+              </p>
 
-          {/* Divider */}
-          <div className="relative my-7">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-200" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase tracking-wider">
-              <span className="bg-white px-4 text-gray-400 font-medium">or sign up with email</span>
-            </div>
-          </div>
+              {/* Divider */}
+              <div className="relative my-7">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-200" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase tracking-wider">
+                  <span className="bg-white px-4 text-gray-400 font-medium">or sign up with email</span>
+                </div>
+              </div>
+            </>
+          )}
 
           {/* Email Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
