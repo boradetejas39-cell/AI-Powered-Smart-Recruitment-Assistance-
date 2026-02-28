@@ -105,7 +105,7 @@ const JobCreate = () => {
     try {
       setLoading(true);
       console.log('📤 Sending job creation request...');
-      console.log('Request URL:', 'http://localhost:5001/api/jobs');
+      console.log('Request URL:', api.defaults.baseURL + '/jobs');
       console.log('Request method:', 'POST');
 
       // Make request with proper headers
